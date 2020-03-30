@@ -92,6 +92,41 @@ public:
     return py_bindings_tools::dictFromType(ser_objs);
   }
 
+  bool allowCollisionsPython1(const std::string& link_1, const std::string& link_2)
+  {
+    return allowCollisions(link_1, link_2);
+  }
+  
+  bool allowCollisionsPython2(const bp::list& links, const std::string& link_2)
+  {
+    std::vector<std::string> links_ = py_bindings_tools::stringFromList(links);
+    return allowCollisions(links_, link_2);
+  }
+  
+  bool disallowCollisionsPython1(const std::string& link_1, const std::string& link_2)
+  {
+    return disallowCollisions(link_1, link_2);
+  }
+  
+  bool disallowCollisionsPython2(const bp::list& links, const std::string& link_2)
+  {
+    std::vector<std::string> links_ = py_bindings_tools::stringFromList(links);
+    return disallowCollisions(links_, link_2);
+  }
+
+  bool setCollisionsPython1(bool set_to_allow, const std::string& link_1, const bp::list links)
+  {
+    std::vector<std::string> links_ = py_bindings_tools::stringFromList(links);
+    return setCollisions(set_to_allow, link_1, links_);
+  }
+  
+  bool setCollisionsPython2(bool set_to_allow, const bp::list& links_1, const bp::list links_2)
+  {
+    std::vector<std::string> links_1_ = py_bindings_tools::stringFromList(links_1);
+    std::vector<std::string> links_2_ = py_bindings_tools::stringFromList(links_2);
+    return setCollisions(set_to_allow, links_1_, links_2_);
+  }
+
   bp::dict getAttachedObjectsPython(const bp::list& object_ids)
   {
     std::map<std::string, moveit_msgs::AttachedCollisionObject> aobjs =
@@ -122,6 +157,12 @@ static void wrap_planning_scene_interface()
                            &PlanningSceneInterfaceWrapper::getKnownObjectNamesInROIPython);
   planning_scene_class.def("get_object_poses", &PlanningSceneInterfaceWrapper::getObjectPosesPython);
   planning_scene_class.def("get_objects", &PlanningSceneInterfaceWrapper::getObjectsPython);
+  planning_scene_class.def("allow_collisions", &PlanningSceneInterfaceWrapper::allowCollisionsPython1);
+  planning_scene_class.def("allow_collisions", &PlanningSceneInterfaceWrapper::allowCollisionsPython2);
+  planning_scene_class.def("disallow_collisions", &PlanningSceneInterfaceWrapper::disallowCollisionsPython1);
+  planning_scene_class.def("disallow_collisions", &PlanningSceneInterfaceWrapper::disallowCollisionsPython2);
+  planning_scene_class.def("set_collisions", &PlanningSceneInterfaceWrapper::setCollisionsPython1);
+  planning_scene_class.def("set_collisions", &PlanningSceneInterfaceWrapper::setCollisionsPython2);
   planning_scene_class.def("get_attached_objects", &PlanningSceneInterfaceWrapper::getAttachedObjectsPython);
   planning_scene_class.def("apply_planning_scene", &PlanningSceneInterfaceWrapper::applyPlanningScenePython);
 }
@@ -135,3 +176,4 @@ BOOST_PYTHON_MODULE(_moveit_planning_scene_interface)
 }
 
 /** @endcond */
+
