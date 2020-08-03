@@ -275,7 +275,7 @@ public:
     // TODO: Include the child links in each link group.
     for (auto b : link_group_1)
     {
-      if (!link_group_2.empty())
+      if (link_group_2.empty())
         acm.setEntry(b, allowed_or_disallowed);
       else
         for (auto b2 : link_group_2)
