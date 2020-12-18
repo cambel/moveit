@@ -279,7 +279,13 @@ class PlanningSceneInterface(object):
             conversions.msg_from_string(msg, ser_aobjs[key])
             aobjs[key] = msg
         return aobjs
-
+    
+    def apply_collision_object(self, collision_object_message):
+        """
+        Applies the collision object message to the scene.
+        """
+        return self._psi.apply_collision_object(conversions.msg_to_string(collision_object_message))
+    
     def apply_planning_scene(self, planning_scene_message):
         """
         Applies the planning scene message.

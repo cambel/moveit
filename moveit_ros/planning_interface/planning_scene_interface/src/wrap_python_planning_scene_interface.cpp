@@ -139,6 +139,13 @@ public:
     return py_bindings_tools::dictFromType(ser_aobjs);
   }
 
+  bool applyCollisionObjectPython(const py_bindings_tools::ByteString& msg_bytestring)
+  {
+    moveit_msgs::CollisionObject co_msg;
+    py_bindings_tools::deserializeMsg(msg_bytestring, co_msg);
+    return applyCollisionObject(co_msg);
+  }
+
   bool applyPlanningScenePython(const py_bindings_tools::ByteString& ps_str)
   {
     moveit_msgs::PlanningScene ps_msg;
@@ -164,6 +171,7 @@ static void wrap_planning_scene_interface()
   planning_scene_class.def("set_collisions", &PlanningSceneInterfaceWrapper::setCollisionsPython1);
   planning_scene_class.def("set_collisions", &PlanningSceneInterfaceWrapper::setCollisionsPython2);
   planning_scene_class.def("get_attached_objects", &PlanningSceneInterfaceWrapper::getAttachedObjectsPython);
+  planning_scene_class.def("apply_collision_object", &PlanningSceneInterfaceWrapper::applyCollisionObjectPython);
   planning_scene_class.def("apply_planning_scene", &PlanningSceneInterfaceWrapper::applyPlanningScenePython);
 }
 }  // namespace planning_interface
