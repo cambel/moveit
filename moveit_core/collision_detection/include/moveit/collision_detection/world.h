@@ -244,6 +244,9 @@ public:
   /** \brief Set subframes on an object. The frames are relative to the object pose. */
   bool setSubframesOfObject(const std::string& object_id, const moveit::core::FixedTransformsMap& subframe_poses);
 
+  /** \brief Set the pose of an object. The pose is specified in the world frame. */
+  bool setObjectPose(const std::string& object_id, const Eigen::Isometry3d& pose);
+
   /** \brief Clear all objects.
    * If there are no other pointers to corresponding instances of Objects,
    * the memory is freed. */

@@ -94,6 +94,7 @@ void World::addToObject(const std::string& object_id, const Eigen::Isometry3d& p
   for (std::size_t i = 0; i < shapes.size(); ++i)
     addToObjectInternal(obj, shapes[i], shape_poses[i]);
 
+  updateGlobalPosesInternal(obj, true, false);
   notify(obj, Action(action));
 }
 
@@ -270,6 +271,20 @@ bool World::setObjectPose(const std::string& object_id, const Eigen::Isometry3d&
   obj->pose_ = pose;
   updateGlobalPosesInternal(obj);
   notify(obj, Action(action));
+  return true;
+}
+
+bool World::moveObjectAbsolute(const std::string& object_id, const Eigen::Isometry3d& transform)
+{
+  auto it = objects_.find(object_id);
+  if (it == objects_.end())
+    return false;
+  ASSERT_ISOMETRY(transform)  // unsanitized input, could contain a non-isometry
+  ensureUnique(it->second);
+  setObjectPose(object_id, transform);  // TODO(felixvd): This can be optimized to use it->second
+  updateGlobalPosesInternal(it->second);
+
+  notify(it->second, MOVE_SHAPE);
   return true;
 }
 
