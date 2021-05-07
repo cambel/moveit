@@ -97,6 +97,7 @@ protected:
   ros::NodeHandle root_node_handle_;
   ros::NodeHandle node_handle_;
   std::string capability_name_;
+  // FIXME: This cannot be changed after initializing the action, so only the default pipeline can be used
   MoveGroupContextPtr context_;
 };
 }  // namespace move_group

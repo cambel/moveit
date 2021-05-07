@@ -288,6 +288,7 @@ bool MoveGroupSequenceAction::planUsingSequenceManager(const moveit_msgs::Motion
       plan.plan_components_.at(i).description_ = "plan";
     }
   }
+  // FIXME: The finished trajectory isn't actually visualized?
   plan.error_code_.val = moveit_msgs::MoveItErrorCodes::SUCCESS;
   return true;
 }

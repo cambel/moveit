@@ -58,10 +58,14 @@ void PlanComponentsBuilder::appendWithStrictTimeIncrease(robot_trajectory::Robot
       !pilz_industrial_motion_planner::isRobotStateEqual(result.getLastWayPoint(), source.getFirstWayPoint(),
                                                          result.getGroupName(), ROBOT_STATE_EQUALITY_EPSILON))
   {
-    result.append(source, 0.0);
+    // FIXME: If the RobotStates are not equal, the transition between them cannot be instant
+    // FIXME: TOTG, IPTP (and ISP?) return trajectories that end with non-zero acceleration, so this is always triggered
+    // FIXME: If two waypoints have equal time, the trajectory controller will complain
+    result.append(source, 0.001);
     return;
   }
 
+  // Skip the start point of the second trajectory
   for (size_t i = 1; i < source.getWayPointCount(); ++i)
   {
     result.addSuffixWayPoint(source.getWayPoint(i), source.getWayPointDurationFromPrevious(i));
