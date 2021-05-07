@@ -637,12 +637,15 @@ class MoveGroupCommander(object):
         error_code = MoveItErrorCodes()
         error_code.deserialize(error_code_msg)
         plan = RobotTrajectory()
-        return (
-            error_code.val == MoveItErrorCodes.SUCCESS,
-            plan.deserialize(trajectory_msg),
-            planning_time,
-            error_code,
-        )
+        return (error_code.val == MoveItErrorCodes.SUCCESS,
+                plan.deserialize(trajectory_msg),
+                planning_time,
+                error_code)
+    
+    def construct_motion_plan_request(self):
+        """ Returns a MotionPlanRequest filled with the current goals of the move_group_interface"""
+        mpr = MotionPlanRequest()
+        return mpr.deserialize(self._g.construct_motion_plan_request())
 
     def construct_motion_plan_request(self):
         """Returns a MotionPlanRequest filled with the current goals of the move_group_interface"""
