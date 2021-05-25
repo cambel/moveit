@@ -213,7 +213,7 @@ void FollowJointTrajectoryControllerHandle::controllerDoneCallback(
 
 void FollowJointTrajectoryControllerHandle::controllerActiveCallback()
 {
-  ROS_DEBUG_STREAM_NAMED(LOGNAME, name_ << " started execution");
+  ROS_INFO_STREAM_NAMED(LOGNAME, name_ << " started execution");
 }
 
 void FollowJointTrajectoryControllerHandle::controllerFeedbackCallback(

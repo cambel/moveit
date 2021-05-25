@@ -55,7 +55,7 @@ namespace pilz_industrial_motion_planner
  * corresponds to the requested motion command
  * set as planner_id in the MotionPlanRequest).
  * It can be easily extended with additional commands by creating a class
- * inherting from PlanningContextLoader.
+ * inheriting from PlanningContextLoader.
  */
 class CommandPlanner : public planning_interface::PlannerManager
 {
@@ -80,15 +80,15 @@ public:
   /**
    * @brief Returns the available planning commands
    * @param list with the planning algorithms
-   * @note behined each command is a
+   * @note behind each command is a
    * pilz_industrial_motion_planner::PlanningContextLoader loaded as plugin
    */
   void getPlanningAlgorithms(std::vector<std::string>& algs) const override;
 
   /**
    * @brief Returns a PlanningContext that can be used to solve(calculate) the
-   * trajectory that corresponds to command
-   * given in motion request as planner_id.
+   * trajectory that corresponds to the command
+   * given in the motion request as planner_id.
    * @param planning_scene
    * @param req
    * @param error_code
@@ -100,7 +100,7 @@ public:
 
   /**
    * @brief Checks if the request can be handled
-   * @param motion request containing the planning_id that corresponds to the
+   * @param motion request containing the planner_id that corresponds to the
    * motion command
    * @return true if the request can be handled
    */
@@ -132,6 +132,8 @@ private:
 
   /// cartesian limit
   pilz_industrial_motion_planner::CartesianLimit cartesian_limit_;
+
+  
 };
 
 MOVEIT_CLASS_FORWARD(CommandPlanner);

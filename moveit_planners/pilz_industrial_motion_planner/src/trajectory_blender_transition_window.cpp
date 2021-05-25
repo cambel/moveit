@@ -61,7 +61,7 @@ bool pilz_industrial_motion_planner::TrajectoryBlenderTransitionWindow::blend(
   std::size_t second_intersection_index;
   if (!searchIntersectionPoints(req, first_intersection_index, second_intersection_index))
   {
-    ROS_ERROR("Blend radius to large.");
+    ROS_ERROR("Blend radius too large.");
     res.error_code.val = moveit_msgs::MoveItErrorCodes::INVALID_MOTION_PLAN;
     return false;
   }
