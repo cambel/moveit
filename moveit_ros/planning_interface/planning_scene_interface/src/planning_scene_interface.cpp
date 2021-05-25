@@ -440,7 +440,8 @@ bool PlanningSceneInterface::allowCollisions(const std::string& link_name_1, con
 bool PlanningSceneInterface::allowCollisions(const std::vector<std::string>& link_group_1, const std::string& link_name_2)
 {
   std::vector<std::string> link_group_2;
-  link_group_2.push_back(link_name_2);
+  if (link_name_2 != "")
+    link_group_2.push_back(link_name_2);
   return setCollisions(true, link_group_1, link_group_2);
 }
 

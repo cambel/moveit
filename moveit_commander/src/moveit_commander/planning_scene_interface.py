@@ -191,25 +191,25 @@ class PlanningSceneInterface(object):
             aco.object.id = name
         self.__submit(aco, attach=True)
 
-    def allow_collisions(self, link_1, link_2):
+    def allow_collisions(self, link_1, link_2=""):
         """
         Allow collisions between link_1 and link_2.
         """
         return self._psi.allow_collisions(link_1, link_2)
 
-    def allow_collisions(self, links, link_2):
+    def allow_collisions(self, links, link_2=""):
         """
         Allow collisions between links and link_2.
         """
         return self._psi.allow_collisions(links, link_2)
     
-    def disallow_collisions(self, link_1, link_2):
+    def disallow_collisions(self, link_1, link_2=""):
         """
         Disallow collisions between link_1 and link_2.
         """
         return self._psi.disallow_collisions(link_1, link_2)
 
-    def disallow_collisions(self, links, link_2):
+    def disallow_collisions(self, links, link_2=""):
         """
         Disallow collisions between links and link_2.
         """
