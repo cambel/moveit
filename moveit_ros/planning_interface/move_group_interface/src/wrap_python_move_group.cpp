@@ -469,6 +469,11 @@ public:
     return asyncExecute(plan) == moveit::core::MoveItErrorCode::SUCCESS;
   }
 
+  bool waitForMotionResultPython()
+  {
+    return waitForMotionResult() == MoveItErrorCode::SUCCESS;
+  }
+
   bp::tuple planPython()
   {
     MoveGroupInterface::Plan plan;
@@ -668,6 +673,7 @@ static void wrap_move_group_interface()
   move_group_interface_class.def("move", &MoveGroupInterfaceWrapper::movePython);
   move_group_interface_class.def("execute", &MoveGroupInterfaceWrapper::executePython);
   move_group_interface_class.def("async_execute", &MoveGroupInterfaceWrapper::asyncExecutePython);
+  move_group_interface_class.def("wait_for_motion_result", &MoveGroupInterfaceWrapper::waitForMotionResultPython);
   moveit::core::MoveItErrorCode (MoveGroupInterfaceWrapper::*pick_1)(const std::string&, bool) =
       &MoveGroupInterfaceWrapper::pick;
   move_group_interface_class.def("pick", pick_1);
