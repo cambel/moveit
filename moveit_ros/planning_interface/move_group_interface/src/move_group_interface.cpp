@@ -936,6 +936,25 @@ public:
     }
   }
 
+  moveit::core::MoveItErrorCode waitForMotionResult()
+  {
+    if (!execute_action_client_->waitForResult())
+    {
+      ROS_INFO_STREAM_NAMED(LOGNAME, "ExecuteTrajectory action returned early");
+    }
+
+    if (execute_action_client_->getState() == actionlib::SimpleClientGoalState::SUCCEEDED)
+    {
+      return MoveItErrorCode(execute_action_client_->getResult()->error_code);
+    }
+    else
+    {
+      ROS_INFO_STREAM_NAMED(LOGNAME, execute_action_client_->getState().toString()
+                                         << ": " << execute_action_client_->getState().getText());
+      return MoveItErrorCode(execute_action_client_->getResult()->error_code);
+    }
+  }
+
   double computeCartesianPath(const std::vector<geometry_msgs::Pose>& waypoints, double step, double jump_threshold,
                               moveit_msgs::RobotTrajectory& msg, const moveit_msgs::Constraints& path_constraints,
                               bool avoid_collisions, moveit_msgs::MoveItErrorCodes& error_code)
@@ -1549,6 +1568,11 @@ moveit::core::MoveItErrorCode MoveGroupInterface::execute(const Plan& plan)
 moveit::core::MoveItErrorCode MoveGroupInterface::execute(const moveit_msgs::RobotTrajectory& trajectory)
 {
   return impl_->execute(trajectory, true);
+}
+
+moveit::core::MoveItErrorCode MoveGroupInterface::waitForMotionResult()
+{
+  return impl_->waitForMotionResult();
 }
 
 moveit::core::MoveItErrorCode MoveGroupInterface::plan(Plan& plan)
