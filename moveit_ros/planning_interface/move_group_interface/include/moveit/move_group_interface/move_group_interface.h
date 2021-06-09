@@ -721,7 +721,7 @@ public:
   moveit::core::MoveItErrorCode execute(const Plan& plan);
 
   /** \brief Given a \e robot trajectory, execute it while waiting for completion. */
-  moveit::core::MoveItErrorCode execute(const moveit_msgs::RobotTrajectory& trajectory);
+  MoveItErrorCode waitForMotionResult();
 
   /** \brief Compute a Cartesian path that follows specified waypoints with a step size of at most \e eef_step meters
       between end effector configurations of consecutive points in the result \e trajectory. The reference frame for the
