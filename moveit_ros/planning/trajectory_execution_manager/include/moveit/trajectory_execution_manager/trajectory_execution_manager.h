@@ -91,11 +91,13 @@ public:
 
   /// Load the controller manager plugin, start listening for events on a topic.
   TrajectoryExecutionManager(const moveit::core::RobotModelConstPtr& robot_model,
-                             const planning_scene_monitor::CurrentStateMonitorPtr& csm);
+                             const planning_scene_monitor::CurrentStateMonitorPtr& csm,
+                             const planning_scene::PlanningSceneConstPtr& planning_scene);
 
   /// Load the controller manager plugin, start listening for events on a topic.
   TrajectoryExecutionManager(const moveit::core::RobotModelConstPtr& robot_model,
-                             const planning_scene_monitor::CurrentStateMonitorPtr& csm, bool manage_controllers);
+                             const planning_scene_monitor::CurrentStateMonitorPtr& csm, bool manage_controllers,
+                             const planning_scene::PlanningSceneConstPtr& planning_scene);
 
   /// Destructor. Cancels all running trajectories (if any)
   ~TrajectoryExecutionManager();
@@ -340,7 +342,7 @@ private:
 
   moveit::core::RobotModelConstPtr robot_model_;
   planning_scene_monitor::CurrentStateMonitorPtr csm_;
-  planning_scene::PlanningScene planning_scene_;
+  planning_scene::PlanningSceneConstPtr planning_scene_;
   ros::NodeHandle node_handle_;
   ros::NodeHandle root_node_handle_;
   ros::Subscriber event_topic_subscriber_;
