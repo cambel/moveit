@@ -193,19 +193,35 @@ class PlanningSceneInterface(object):
 
     def allow_collisions(self, link_1, link_2=""):
         """
-        Allow collisions between link_1(one or many) and link_2.
+        Allow collisions between link_1(one or many) and link_2 (one or many).
         """
-        return self._psi.allow_collisions(link_1, link_2)
+        if not isinstance(link_1, list):
+            links_1 = [link_1]
+        else:
+            links_1 = link_1
+        if not isinstance(link_2, list):
+            links_2 = [link_2]
+        else:
+            links_2 = link_2
+        return self._psi.allow_collisions(links_1, links_2)
     
     def disallow_collisions(self, link_1, link_2=""):
         """
-        Disallow collisions between link_1(one or many) and link_2.
+        Disallow collisions between link_1(one or many) and link_2 (one or many).
         """
-        return self._psi.disallow_collisions(link_1, link_2)
+        if not isinstance(link_1, list):
+            links_1 = [link_1]
+        else:
+            links_1 = link_1
+        if not isinstance(link_2, list):
+            links_2 = [link_2]
+        else:
+            links_2 = link_2
+        return self._psi.disallow_collisions(links_1, links_2)
     
     def set_collisions(self, set_to_allow, link_1, link_2):
         """
-        Set collisions between link_1 and link_2.
+        Set collisions between link_1 (one or many) and link_2 (one or many).
         """
         return self._psi.set_collisions(set_to_allow, link_1, link_2)
 

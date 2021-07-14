@@ -154,8 +154,10 @@ public:
   */
   bool allowCollisions(const std::string& link_name_1, const std::string& link_name_2 = "");
   bool allowCollisions(const std::vector<std::string>& link_group_1, const std::string& link_name_2 = "");
+  bool allowCollisions(const std::vector<std::string>& link_group_1, const std::vector<std::string>& link_group_2);
   bool disallowCollisions(const std::string& link_name_1, const std::string& link_name_2 = "");
   bool disallowCollisions(const std::vector<std::string>& link_group_1, const std::string& link_name_2 = "");
+  bool disallowCollisions(const std::vector<std::string>& link_group_1, const std::vector<std::string>& link_group_2);
 
   /** \brief Allow or disallow collisions for a set of links or between two sets. */
   bool setCollisions(bool set_to_allow, const std::vector<std::string>& link_group_1, 

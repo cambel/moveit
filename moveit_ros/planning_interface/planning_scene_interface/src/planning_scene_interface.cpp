@@ -445,6 +445,11 @@ bool PlanningSceneInterface::allowCollisions(const std::vector<std::string>& lin
   return setCollisions(true, link_group_1, link_group_2);
 }
 
+bool PlanningSceneInterface::allowCollisions(const std::vector<std::string>& link_group_1, const std::vector<std::string>& link_group_2)
+{
+  return setCollisions(true, link_group_1, link_group_2);
+}
+
 bool PlanningSceneInterface::disallowCollisions(const std::string& link_name_1, const std::string& link_name_2)
 {
   std::vector<std::string> link_group_1, link_group_2;
@@ -457,6 +462,11 @@ bool PlanningSceneInterface::disallowCollisions(const std::string& link_name_1, 
 bool PlanningSceneInterface::disallowCollisions(const std::vector<std::string>& link_group_1, const std::string& link_name_2)
 {
   std::vector<std::string> link_group_2 = {link_name_2};
+  return setCollisions(false, link_group_1, link_group_2);
+}
+
+bool PlanningSceneInterface::disallowCollisions(const std::vector<std::string>& link_group_1, const std::vector<std::string>& link_group_2)
+{
   return setCollisions(false, link_group_1, link_group_2);
 }
 

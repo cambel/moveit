@@ -102,6 +102,13 @@ public:
     std::vector<std::string> links_ = py_bindings_tools::stringFromList(links);
     return allowCollisions(links_, link_2);
   }
+
+  bool allowCollisionsPython3(const bp::list& links, const bp::list& links_2)
+  {
+    std::vector<std::string> links_   = py_bindings_tools::stringFromList(links);
+    std::vector<std::string> links_2_ = py_bindings_tools::stringFromList(links_2);
+    return allowCollisions(links_, links_2_);
+  }
   
   bool disallowCollisionsPython1(const std::string& link_1, const std::string& link_2)
   {
@@ -112,6 +119,13 @@ public:
   {
     std::vector<std::string> links_ = py_bindings_tools::stringFromList(links);
     return disallowCollisions(links_, link_2);
+  }
+
+  bool disallowCollisionsPython3(const bp::list& links, const bp::list& links_2)
+  {
+    std::vector<std::string> links_ = py_bindings_tools::stringFromList(links);
+    std::vector<std::string> links_2_ = py_bindings_tools::stringFromList(links_2);
+    return disallowCollisions(links_, links_2_);
   }
 
   bool setCollisionsPython1(bool set_to_allow, const std::string& link_1, const bp::list links)
@@ -166,8 +180,10 @@ static void wrap_planning_scene_interface()
   planning_scene_class.def("get_objects", &PlanningSceneInterfaceWrapper::getObjectsPython);
   planning_scene_class.def("allow_collisions", &PlanningSceneInterfaceWrapper::allowCollisionsPython1);
   planning_scene_class.def("allow_collisions", &PlanningSceneInterfaceWrapper::allowCollisionsPython2);
+  planning_scene_class.def("allow_collisions", &PlanningSceneInterfaceWrapper::allowCollisionsPython3);
   planning_scene_class.def("disallow_collisions", &PlanningSceneInterfaceWrapper::disallowCollisionsPython1);
   planning_scene_class.def("disallow_collisions", &PlanningSceneInterfaceWrapper::disallowCollisionsPython2);
+  planning_scene_class.def("disallow_collisions", &PlanningSceneInterfaceWrapper::disallowCollisionsPython3);
   planning_scene_class.def("set_collisions", &PlanningSceneInterfaceWrapper::setCollisionsPython1);
   planning_scene_class.def("set_collisions", &PlanningSceneInterfaceWrapper::setCollisionsPython2);
   planning_scene_class.def("get_attached_objects", &PlanningSceneInterfaceWrapper::getAttachedObjectsPython);
