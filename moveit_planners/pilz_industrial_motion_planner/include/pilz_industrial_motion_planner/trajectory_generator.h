@@ -100,6 +100,7 @@ public:
 
   /**
    * @brief generate robot trajectory with given sampling time
+   * @param scene: planning scene
    * @param req: motion plan request
    * @param res: motion plan response
    * @param sampling_time: sampling time of the generate trajectory

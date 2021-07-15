@@ -208,8 +208,8 @@ bool intersectionFound(const Eigen::Vector3d& p_center, const Eigen::Vector3d& p
  * @brief Checks if current robot state is in self collision.
  * @param scene: planning scene.
  * @param test_for_self_collision Flag to deactivate this check during IK.
+ * @param scene: planning scene.
  * @param robot_model: robot kinematics model.
- * @param state Robot state instance used for .
  * @param group
  * @param ik_solution
  * @return
