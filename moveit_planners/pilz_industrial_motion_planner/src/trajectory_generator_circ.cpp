@@ -125,7 +125,7 @@ void TrajectoryGeneratorCIRC::extractMotionPlanInfo(const planning_scene::Planni
       info.goal_joint_position[joint_item.joint_name] = joint_item.position;
     }
 
-    computeLinkFK(robot_model_, info.link_name, info.goal_joint_position, info.goal_pose);
+    computeLinkFK(scene, info.link_name, info.goal_joint_position, info.goal_pose);
   }
   // goal given in Cartesian space
   else
@@ -160,7 +160,7 @@ void TrajectoryGeneratorCIRC::extractMotionPlanInfo(const planning_scene::Planni
     info.start_joint_position[joint_name] = req.start_state.joint_state.position[index];
   }
 
-  computeLinkFK(robot_model_, info.link_name, info.start_joint_position, info.start_pose);
+  computeLinkFK(scene, info.link_name, info.start_joint_position, info.start_pose);
 
   // check goal pose ik before Cartesian motion plan starts
   std::map<std::string, double> ik_solution;

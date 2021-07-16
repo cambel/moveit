@@ -99,7 +99,7 @@ void TrajectoryGeneratorLIN::extractMotionPlanInfo(const planning_scene::Plannin
 
     // Ignored return value because at this point the function should always
     // return 'true'.
-    computeLinkFK(robot_model_, info.link_name, info.goal_joint_position, info.goal_pose);
+    computeLinkFK(scene, info.link_name, info.goal_joint_position, info.goal_pose);
   }
   // goal given in Cartesian space
   else
@@ -136,7 +136,7 @@ void TrajectoryGeneratorLIN::extractMotionPlanInfo(const planning_scene::Plannin
 
   // Ignored return value because at this point the function should always
   // return 'true'.
-  computeLinkFK(robot_model_, info.link_name, info.start_joint_position, info.start_pose);
+  computeLinkFK(scene, info.link_name, info.start_joint_position, info.start_pose);
 
   // check goal pose ik before Cartesian motion plan starts
   std::map<std::string, double> ik_solution;

@@ -52,7 +52,6 @@ namespace pilz_industrial_motion_planner
  * @brief compute the inverse kinematics of a given pose, also check robot self
  * collision
  * @param scene: planning scene
- * @param robot_model: kinematic model of the robot
  * @param group_name: name of planning group
  * @param link_name: name of target link
  * @param pose: target pose in IK solver Frame
@@ -76,16 +75,16 @@ bool computePoseIK(const planning_scene::PlanningSceneConstPtr& scene, const std
 
 /**
  * @brief compute the pose of a link at give robot state
- * @param robot_model: kinematic model of the robot
+ * @param scene: planning scene
  * @param link_name: target link name
  * @param joint_state: joint positons of this group
  * @param pose: pose of the link in base frame of robot model
  * @return true if succeed
  */
-bool computeLinkFK(const robot_model::RobotModelConstPtr& robot_model, const std::string& link_name,
+bool computeLinkFK(const planning_scene::PlanningSceneConstPtr& scene, const std::string& link_name,
                    const std::map<std::string, double>& joint_state, Eigen::Isometry3d& pose);
 
-bool computeLinkFK(const robot_model::RobotModelConstPtr& robot_model, const std::string& link_name,
+bool computeLinkFK(const planning_scene::PlanningSceneConstPtr& scene, const std::string& link_name,
                    const std::vector<std::string>& joint_names, const std::vector<double>& joint_positions,
                    Eigen::Isometry3d& pose);
 
