@@ -41,33 +41,32 @@
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 
 bool pilz_industrial_motion_planner::computePoseIK(const planning_scene::PlanningSceneConstPtr& scene,
-                                                   const moveit::core::RobotModelConstPtr& robot_model,
                                                    const std::string& group_name, const std::string& link_name,
                                                    const Eigen::Isometry3d& pose, const std::string& frame_id,
                                                    const std::map<std::string, double>& seed,
                                                    std::map<std::string, double>& solution, bool check_self_collision,
                                                    const double timeout)
 {
-  if (!robot_model->hasJointModelGroup(group_name))
+  if (!scene->getRobotModel()->hasJointModelGroup(group_name))
   {
     ROS_ERROR_STREAM("Robot model has no planning group named as " << group_name);
     return false;
   }
 
-  if (!robot_model->getJointModelGroup(group_name)->canSetStateFromIK(link_name))
+  if (!scene->getRobotModel()->getJointModelGroup(group_name)->canSetStateFromIK(link_name))
   {
     ROS_ERROR_STREAM("No valid IK solver exists for " << link_name << " in planning group " << group_name);
     return false;
   }
 
-  if (frame_id != robot_model->getModelFrame())
+  if (frame_id != scene->getRobotModel()->getModelFrame())
   {
-    ROS_ERROR_STREAM("Given frame (" << frame_id << ") is unequal to model frame(" << robot_model->getModelFrame()
+    ROS_ERROR_STREAM("Given frame (" << frame_id << ") is unequal to model frame(" << scene->getRobotModel()->getModelFrame()
                                      << ")");
     return false;
   }
 
-  robot_state::RobotState rstate(robot_model);
+  robot_state::RobotState rstate = scene->getCurrentState();
   // By setting the robot state to default values, we basically allow
   // the user of this function to supply an incomplete or even empty seed.
   rstate.setToDefaultValues();
@@ -78,10 +77,10 @@ bool pilz_industrial_motion_planner::computePoseIK(const planning_scene::Plannin
       boost::bind(&pilz_industrial_motion_planner::isStateColliding, check_self_collision, scene, _1, _2, _3);
 
   // call ik
-  if (rstate.setFromIK(robot_model->getJointModelGroup(group_name), pose, link_name, timeout, ik_constraint_function))
+  if (rstate.setFromIK(scene->getRobotModel()->getJointModelGroup(group_name), pose, link_name, timeout, ik_constraint_function))
   {
     // copy the solution
-    for (const auto& joint_name : robot_model->getJointModelGroup(group_name)->getActiveJointModelNames())
+    for (const auto& joint_name : scene->getRobotModel()->getJointModelGroup(group_name)->getActiveJointModelNames())
     {
       solution[joint_name] = rstate.getVariablePosition(joint_name);
     }
@@ -95,7 +94,6 @@ bool pilz_industrial_motion_planner::computePoseIK(const planning_scene::Plannin
 }
 
 bool pilz_industrial_motion_planner::computePoseIK(const planning_scene::PlanningSceneConstPtr& scene,
-                                                   const moveit::core::RobotModelConstPtr& robot_model,
                                                    const std::string& group_name, const std::string& link_name,
                                                    const geometry_msgs::Pose& pose, const std::string& frame_id,
                                                    const std::map<std::string, double>& seed,
@@ -104,16 +102,16 @@ bool pilz_industrial_motion_planner::computePoseIK(const planning_scene::Plannin
 {
   Eigen::Isometry3d pose_eigen;
   tf2::fromMsg(pose, pose_eigen);
-  return computePoseIK(scene, robot_model, group_name, link_name, pose_eigen, frame_id, seed, solution,
+  return computePoseIK(scene, group_name, link_name, pose_eigen, frame_id, seed, solution,
                        check_self_collision, timeout);
 }
 
-bool pilz_industrial_motion_planner::computeLinkFK(const moveit::core::RobotModelConstPtr& robot_model,
+bool pilz_industrial_motion_planner::computeLinkFK(const planning_scene::PlanningSceneConstPtr& scene,
                                                    const std::string& link_name,
                                                    const std::map<std::string, double>& joint_state,
                                                    Eigen::Isometry3d& pose)
 {  // create robot state
-  robot_state::RobotState rstate(robot_model);
+  robot_state::RobotState rstate = scene->getCurrentState();
 
   // check the reference frame of the target pose
   if (!rstate.knowsFrameTransform(link_name))
@@ -193,7 +191,7 @@ bool pilz_industrial_motion_planner::verifySampleJointLimits(
 }
 
 bool pilz_industrial_motion_planner::generateJointTrajectory(
-    const planning_scene::PlanningSceneConstPtr& scene, const moveit::core::RobotModelConstPtr& robot_model,
+    const planning_scene::PlanningSceneConstPtr& scene,
     const pilz_industrial_motion_planner::JointLimitsContainer& joint_limits, const KDL::Trajectory& trajectory,
     const std::string& group_name, const std::string& link_name,
     const std::map<std::string, double>& initial_joint_position, const double& sampling_time,
@@ -227,7 +225,7 @@ bool pilz_industrial_motion_planner::generateJointTrajectory(
   {
     tf2::fromMsg(tf2::toMsg(trajectory.Pos(*time_iter)), pose_sample);
 
-    if (!computePoseIK(scene, robot_model, group_name, link_name, pose_sample, robot_model->getModelFrame(),
+    if (!computePoseIK(scene, group_name, link_name, pose_sample, scene->getRobotModel()->getModelFrame(),
                        ik_solution_last, ik_solution, check_self_collision))
     {
       ROS_ERROR("Failed to compute inverse kinematics solution for sampled "
@@ -308,7 +306,7 @@ bool pilz_industrial_motion_planner::generateJointTrajectory(
 }
 
 bool pilz_industrial_motion_planner::generateJointTrajectory(
-    const planning_scene::PlanningSceneConstPtr& scene, const moveit::core::RobotModelConstPtr& robot_model,
+    const planning_scene::PlanningSceneConstPtr& scene,
     const pilz_industrial_motion_planner::JointLimitsContainer& joint_limits,
     const pilz_industrial_motion_planner::CartesianTrajectory& trajectory, const std::string& group_name,
     const std::string& link_name, const std::map<std::string, double>& initial_joint_position,
@@ -332,8 +330,8 @@ bool pilz_industrial_motion_planner::generateJointTrajectory(
   for (size_t i = 0; i < trajectory.points.size(); ++i)
   {
     // compute inverse kinematics
-    if (!computePoseIK(scene, robot_model, group_name, link_name, trajectory.points.at(i).pose,
-                       robot_model->getModelFrame(), ik_solution_last, ik_solution, check_self_collision))
+    if (!computePoseIK(scene, group_name, link_name, trajectory.points.at(i).pose,
+                       scene->getRobotModel()->getModelFrame(), ik_solution_last, ik_solution, check_self_collision))
     {
       ROS_ERROR("Failed to compute inverse kinematics solution for sampled "
                 "Cartesian pose.");

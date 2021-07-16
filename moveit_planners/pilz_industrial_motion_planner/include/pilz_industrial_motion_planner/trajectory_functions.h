@@ -52,7 +52,6 @@ namespace pilz_industrial_motion_planner
  * @brief compute the inverse kinematics of a given pose, also check robot self
  * collision
  * @param scene: planning scene
- * @param robot_model: kinematic model of the robot
  * @param group_name: name of planning group
  * @param link_name: name of target link
  * @param pose: target pose in IK solver Frame
@@ -64,30 +63,28 @@ namespace pilz_industrial_motion_planner
  * @param timeout: timeout for IK, if not set the default solver timeout is used
  * @return true if succeed
  */
-bool computePoseIK(const planning_scene::PlanningSceneConstPtr& scene,
-                   const robot_model::RobotModelConstPtr& robot_model, const std::string& group_name,
+bool computePoseIK(const planning_scene::PlanningSceneConstPtr& scene,const std::string& group_name,
                    const std::string& link_name, const Eigen::Isometry3d& pose, const std::string& frame_id,
                    const std::map<std::string, double>& seed, std::map<std::string, double>& solution,
                    bool check_self_collision = true, const double timeout = 0.0);
 
-bool computePoseIK(const planning_scene::PlanningSceneConstPtr& scene,
-                   const robot_model::RobotModelConstPtr& robot_model, const std::string& group_name,
+bool computePoseIK(const planning_scene::PlanningSceneConstPtr& scene,const std::string& group_name,
                    const std::string& link_name, const geometry_msgs::Pose& pose, const std::string& frame_id,
                    const std::map<std::string, double>& seed, std::map<std::string, double>& solution,
                    bool check_self_collision = true, const double timeout = 0.0);
 
 /**
  * @brief compute the pose of a link at give robot state
- * @param robot_model: kinematic model of the robot
+ * @param scene: planning scene
  * @param link_name: target link name
  * @param joint_state: joint positons of this group
  * @param pose: pose of the link in base frame of robot model
  * @return true if succeed
  */
-bool computeLinkFK(const robot_model::RobotModelConstPtr& robot_model, const std::string& link_name,
+bool computeLinkFK(const planning_scene::PlanningSceneConstPtr& scene, const std::string& link_name,
                    const std::map<std::string, double>& joint_state, Eigen::Isometry3d& pose);
 
-bool computeLinkFK(const robot_model::RobotModelConstPtr& robot_model, const std::string& link_name,
+bool computeLinkFK(const planning_scene::PlanningSceneConstPtr& scene, const std::string& link_name,
                    const std::vector<std::string>& joint_names, const std::vector<double>& joint_positions,
                    Eigen::Isometry3d& pose);
 
@@ -128,7 +125,6 @@ bool verifySampleJointLimits(const std::map<std::string, double>& position_last,
  * @return true if succeed
  */
 bool generateJointTrajectory(const planning_scene::PlanningSceneConstPtr& scene,
-                             const robot_model::RobotModelConstPtr& robot_model,
                              const JointLimitsContainer& joint_limits, const KDL::Trajectory& trajectory,
                              const std::string& group_name, const std::string& link_name,
                              const std::map<std::string, double>& initial_joint_position, const double& sampling_time,
@@ -145,7 +141,6 @@ bool generateJointTrajectory(const planning_scene::PlanningSceneConstPtr& scene,
  * @return true if succeed
  */
 bool generateJointTrajectory(const planning_scene::PlanningSceneConstPtr& scene,
-                             const robot_model::RobotModelConstPtr& robot_model,
                              const JointLimitsContainer& joint_limits,
                              const pilz_industrial_motion_planner::CartesianTrajectory& trajectory,
                              const std::string& group_name, const std::string& link_name,
