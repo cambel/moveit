@@ -169,6 +169,7 @@ public:
 private:
   void configure();
 
+  std::string name_ = "planning_pipeline";
   // The NodeHandle to initialize the PlanningPipeline (parameters plugins) with
   ros::NodeHandle pipeline_nh_;
   // The private node handle of the node this PlanningPipeline was initialized from.

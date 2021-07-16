@@ -97,7 +97,7 @@ void planning_pipeline::PlanningPipeline::configure()
   }
   catch (pluginlib::PluginlibException& ex)
   {
-    ROS_FATAL_STREAM("Exception while creating planning plugin loader " << ex.what());
+    ROS_FATAL_STREAM_NAMED(name_, "Exception while creating planning plugin loader " << ex.what());
   }
 
   std::vector<std::string> classes;
@@ -106,13 +106,13 @@ void planning_pipeline::PlanningPipeline::configure()
   if (planner_plugin_name_.empty() && classes.size() == 1)
   {
     planner_plugin_name_ = classes[0];
-    ROS_INFO("No '~planning_plugin' parameter specified, but only '%s' planning plugin is available. Using that one.",
+    ROS_INFO_NAMED(name_, "No '~planning_plugin' parameter specified, but only '%s' planning plugin is available. Using that one.",
              planner_plugin_name_.c_str());
   }
   if (planner_plugin_name_.empty() && classes.size() > 1)
   {
     planner_plugin_name_ = classes[0];
-    ROS_INFO("Multiple planning plugins available. You should specify the '~planning_plugin' parameter. Using '%s' for "
+    ROS_INFO_NAMED(name_, "Multiple planning plugins available. You should specify the '~planning_plugin' parameter. Using '%s' for "
              "now.",
              planner_plugin_name_.c_str());
   }
@@ -121,11 +121,11 @@ void planning_pipeline::PlanningPipeline::configure()
     planner_instance_ = planner_plugin_loader_->createUniqueInstance(planner_plugin_name_);
     if (!planner_instance_->initialize(robot_model_, pipeline_nh_.getNamespace()))
       throw std::runtime_error("Unable to initialize planning plugin");
-    ROS_INFO_STREAM("Using planning interface '" << planner_instance_->getDescription() << "'");
+    ROS_INFO_STREAM_NAMED(name_, "Using planning interface '" << planner_instance_->getDescription() << "'");
   }
   catch (pluginlib::PluginlibException& ex)
   {
-    ROS_ERROR_STREAM("Exception while loading planner '"
+    ROS_ERROR_STREAM_NAMED(name_, "Exception while loading planner '"
                      << planner_plugin_name_ << "': " << ex.what() << std::endl
                      << "Available plugins: " << boost::algorithm::join(classes, ", "));
   }
@@ -142,7 +142,7 @@ void planning_pipeline::PlanningPipeline::configure()
     }
     catch (pluginlib::PluginlibException& ex)
     {
-      ROS_ERROR_STREAM("Exception while creating planning plugin loader " << ex.what());
+      ROS_ERROR_STREAM_NAMED(name_, "Exception while creating planning plugin loader " << ex.what());
     }
 
     if (adapter_plugin_loader_)
@@ -155,7 +155,7 @@ void planning_pipeline::PlanningPipeline::configure()
         }
         catch (pluginlib::PluginlibException& ex)
         {
-          ROS_ERROR_STREAM("Exception while loading planning adapter plugin '" << adapter_plugin_name
+          ROS_ERROR_STREAM_NAMED(name_, "Exception while loading planning adapter plugin '" << adapter_plugin_name
                                                                                << "': " << ex.what());
         }
         if (ad)
@@ -169,7 +169,7 @@ void planning_pipeline::PlanningPipeline::configure()
       adapter_chain_ = std::make_unique<planning_request_adapter::PlanningRequestAdapterChain>();
       for (planning_request_adapter::PlanningRequestAdapterConstPtr& ad : ads)
       {
-        ROS_INFO_STREAM("Using planning request adapter '" << ad->getDescription() << "'");
+        ROS_INFO_STREAM_NAMED(name_, "Using planning request adapter '" << ad->getDescription() << "'");
         adapter_chain_->addAdapter(ad);
       }
     }
@@ -226,7 +226,7 @@ bool planning_pipeline::PlanningPipeline::generatePlan(const planning_scene::Pla
 
   if (!planner_instance_)
   {
-    ROS_ERROR("No planning plugin loaded. Cannot plan.");
+    ROS_ERROR_NAMED(name_, "No planning plugin loaded. Cannot plan.");
     return false;
   }
 
@@ -241,7 +241,7 @@ bool planning_pipeline::PlanningPipeline::generatePlan(const planning_scene::Pla
         std::stringstream ss;
         for (std::size_t added_index : adapter_added_state_index)
           ss << added_index << " ";
-        ROS_INFO("Planning adapters have added states at index positions: [ %s]", ss.str().c_str());
+        ROS_INFO_NAMED(name_, "Planning adapters have added states at index positions: [ %s]", ss.str().c_str());
       }
     }
     else
@@ -253,7 +253,7 @@ bool planning_pipeline::PlanningPipeline::generatePlan(const planning_scene::Pla
   }
   catch (std::exception& ex)
   {
-    ROS_ERROR("Exception caught: '%s'", ex.what());
+    ROS_ERROR_NAMED(name_, "Exception caught: '%s'", ex.what());
     return false;
   }
   bool valid = true;
@@ -261,7 +261,7 @@ bool planning_pipeline::PlanningPipeline::generatePlan(const planning_scene::Pla
   if (solved && res.trajectory_)
   {
     std::size_t state_count = res.trajectory_->getWayPointCount();
-    ROS_DEBUG_STREAM("Motion planner reported a solution path with " << state_count << " states");
+    ROS_DEBUG_STREAM_NAMED(name_, "Motion planner reported a solution path with " << state_count << " states");
     if (check_solution_paths_)
     {
       visualization_msgs::MarkerArray arr;
@@ -290,7 +290,7 @@ bool planning_pipeline::PlanningPipeline::generatePlan(const planning_scene::Pla
         if (problem)
         {
           if (index.size() == 1 && index[0] == 0)  // ignore cases when the robot starts at invalid location
-            ROS_DEBUG("It appears the robot is starting at an invalid state, but that is ok.");
+            ROS_DEBUG_NAMED(name_, "It appears the robot is starting at an invalid state, but that is ok.");
           else
           {
             valid = false;
@@ -300,7 +300,7 @@ bool planning_pipeline::PlanningPipeline::generatePlan(const planning_scene::Pla
             std::stringstream ss;
             for (std::size_t it : index)
               ss << it << " ";
-            ROS_ERROR_STREAM("Computed path is not valid. Invalid states at index locations: [ "
+            ROS_ERROR_STREAM_NAMED(name_, "Computed path is not valid. Invalid states at index locations: [ "
                              << ss.str() << "] out of " << state_count
                              << ". Explanations follow in command line. Contacts are published on "
                              << private_nh_.resolveName(MOTION_CONTACTS_TOPIC));
@@ -332,7 +332,7 @@ bool planning_pipeline::PlanningPipeline::generatePlan(const planning_scene::Pla
           }
         }
         else
-          ROS_DEBUG("Planned path was found to be valid, except for states that were added by planning request "
+          ROS_DEBUG_NAMED(name_, "Planned path was found to be valid, except for states that were added by planning request "
                     "adapters, but that is ok.");
       }
       else
@@ -365,7 +365,7 @@ bool planning_pipeline::PlanningPipeline::generatePlan(const planning_scene::Pla
         stacked_constraints = true;
     }
     if (stacked_constraints)
-      ROS_WARN("More than one constraint is set. If your move_group does not have multiple end effectors/arms, this is "
+      ROS_WARN_NAMED(name_, "More than one constraint is set. If your move_group does not have multiple end effectors/arms, this is "
                "unusual. Are you using a move_group_interface and forgetting to call clearPoseTargets() or "
                "equivalent?");
   }
