@@ -195,11 +195,11 @@ class PlanningSceneInterface(object):
         """
         Allow collisions between link_1(one or many) and link_2 (one or many).
         """
-        if not isinstance(link_1, list):
+        if not isinstance(link_1, list) and not link_1 == "":
             links_1 = [link_1]
         else:
             links_1 = link_1
-        if not isinstance(link_2, list):
+        if not isinstance(link_2, list) and not link_2 == "":
             links_2 = [link_2]
         else:
             links_2 = link_2
@@ -209,11 +209,11 @@ class PlanningSceneInterface(object):
         """
         Disallow collisions between link_1(one or many) and link_2 (one or many).
         """
-        if not isinstance(link_1, list):
+        if not isinstance(link_1, list) and not link_1 == "":
             links_1 = [link_1]
         else:
             links_1 = link_1
-        if not isinstance(link_2, list):
+        if not isinstance(link_2, list) and not link_2 == "":
             links_2 = [link_2]
         else:
             links_2 = link_2
