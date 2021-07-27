@@ -342,7 +342,7 @@ bool planning_pipeline::PlanningPipeline::generatePlan(const planning_scene::Pla
   }
 
   // display solution path if needed
-  if (display_computed_motion_plans_)
+  if (display_computed_motion_plans_ && res.trajectory_)
   {
     moveit_msgs::DisplayTrajectory disp;
     disp.model_id = robot_model_->getName();
