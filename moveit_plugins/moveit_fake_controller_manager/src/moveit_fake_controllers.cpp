@@ -74,10 +74,11 @@ LastPointController::~LastPointController() = default;
 
 bool LastPointController::sendTrajectory(const moveit_msgs::RobotTrajectory& t)
 {
-  ROS_INFO_NAMED(name_, "Fake execution of trajectory");
+  ROS_INFO_NAMED(name_, "Fake execution of trajectory: Last point start");
   if (t.joint_trajectory.points.empty())
     return true;
 
+  status_ = moveit_controller_manager::ExecutionStatus::RUNNING;
   sensor_msgs::JointState js;
   const trajectory_msgs::JointTrajectoryPoint& last = t.joint_trajectory.points.back();
   js.header = t.joint_trajectory.header;
@@ -87,12 +88,15 @@ bool LastPointController::sendTrajectory(const moveit_msgs::RobotTrajectory& t)
   js.velocity = last.velocities;
   js.effort = last.effort;
   pub_.publish(js);
+  status_ = moveit_controller_manager::ExecutionStatus::SUCCEEDED;
+  ROS_INFO_NAMED(name_, "Fake execution of trajectory: Last point done");
 
   return true;
 }
 
 bool LastPointController::cancelExecution()
 {
+  status_ = moveit_controller_manager::ExecutionStatus::ABORTED;
   return true;
 }
 
