@@ -1337,7 +1337,7 @@ void PlanningSceneMonitor::getUpdatedFrameTransforms(std::vector<geometry_msgs::
     }
     catch (tf2::TransformException& ex)
     {
-      ROS_WARN_STREAM_NAMED(LOGNAME, "Unable to transform object from frame '"
+      ROS_DEBUG_STREAM_THROTTLE_NAMED(1, LOGNAME, "Unable to transform object from frame '"
                                          << all_frame_name << "' to planning frame '" << target << "' (" << ex.what()
                                          << ")");
       continue;
