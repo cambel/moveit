@@ -379,31 +379,23 @@ void TrajectoryExecutionManager::continuousExecutionThread()
 {
 
   /*
-  TODO(cambel): Clean this method
-  - Remove the used_handles, used the active context map instead (maybe not if this is more efficient)
-  - Separate chunks of code into private methods
-  - Make logs DEBUG type
-  - format clang?
-  */
-  /*
-  TODO(cambel): Implement simple scheduling for trajectories
+  Implemention of simple scheduling for simultaneous execution of multiple trajectories
   main loop:
-    0. Check if we have entries in the *backlog*
-      a. if so, 
+    1. Check if we have entries in the *backlog*
+      a. If so, 
         I. check that the handles in the current item are not necessary in previous items of the backlog 
-          (avoid altering the sequential order in which requests arrived per handle), 
-          if there are not, go to step II., else check the next item in the backlog
-        II. check the first item is executable, step 2. to 6., if so remove backlog entry, else go to the next item in the backlog
-      b. go to step 2.
-      c. after checking the entire *backlog*, go to step 1.
-    1. Pop new request
-    --- new method start here ---
-    2. Check its handles (controllers) and see if they are available
-    3. Check that the necessary handles are not busy, otherwise push request into *backlog*
-    4. Check that the new trajectories are not in collision with the active collisions, otherwise push request into *backlog*
-    5. Check that the new trajectories start from the current pose of the robot, otherwise reject request
-    6. If everything is okay, execute trajectory, store request as used_handles, active_contexts_map
-    --- new method stop here ---
+          (avoid altering the sequential order in which requests arrived per handle).
+         If there are not, go to step II., else check the next item in the backlog
+        II. check the first item is executable, step 3. to 7., if so remove backlog entry, else go to the next item in the backlog
+      c. after checking the entire *backlog*, go to step 2.
+    2. Pop new request
+    --- validateAndExecuteContext start here ---
+    3. Check its handles (controllers) and see if they are available
+    4. Check that the necessary handles are not busy, otherwise push request into *backlog*
+    5. Check that the new trajectories are not in collision with the active collisions, otherwise push request into *backlog*
+    6. Check that the new trajectories start from the current pose of the robot, otherwise abort request
+    7. If everything is okay, execute trajectory, store request as used_handles, active_contexts_map
+    --- validateAndExecuteContext stop here ---
   */
   /*
   TODO (cambel):
@@ -1918,11 +1910,7 @@ void TrajectoryExecutionManager::updateActiveHandlesAndContexts(std::set<moveit_
 bool TrajectoryExecutionManager::checkCollisionBetweenTrajectories(const moveit_msgs::RobotTrajectory& new_trajectory, const moveit_msgs::RobotTrajectory& active_trajectory)
 {
   ROS_DEBUG_STREAM_NAMED(name_, "Start checkCollision between trajectories using PlanningScene.isPathValid()");
-  // Allow all collisions
-    // TODO: This has optimization potential (ACM is not used, all collisions are checked (instead of robot-robot only)
-    // collision_detection::AllowedCollisionMatrix& acm = scene.getAllowedCollisionMatrixNonConst();
-  ROS_DEBUG_STREAM_NAMED(name_, "getCurrentState");
-  // before we start planning, ensure that we have the latest robot state received...
+  // before we start checking collisions, ensure that we have the latest robot state received...
   planning_scene_monitor_->waitForCurrentRobotState(ros::Time::now());
   planning_scene_monitor_->updateFrameTransforms();
 
@@ -1930,15 +1918,12 @@ bool TrajectoryExecutionManager::checkCollisionBetweenTrajectories(const moveit_
   moveit::core::RobotState start_state = ps->getCurrentState();
   
   moveit_msgs::RobotState start_state_msg;
-  ROS_DEBUG_STREAM_NAMED(name_, "compute collision check");
+  ROS_DEBUG_STREAM_NAMED(name_, "Compute collision check");
   for(std::size_t i = 0; i < active_trajectory.joint_trajectory.points.size(); ++i)
     if (jointTrajPointToRobotState(active_trajectory.joint_trajectory, i, start_state))
     {
       robotStateToRobotStateMsg(start_state, start_state_msg);
-      // TODO(cambel): We would like to activate verbose output, but is this leading to a crash?
-      // std::string group_name = "";
-      //  if(!planning_scene_->isPathValid(start_state_msg, new_trajectory, group_name, true))
-      if(!ps->isPathValid(start_state_msg, new_trajectory, new_trajectory.group_name))
+      if(!ps->isPathValid(start_state_msg, new_trajectory, new_trajectory.group_name, true))
       {
         ROS_DEBUG_STREAM_NAMED(name_, "Done checkCollision between trajectories: Collision found!");
         return false;  // Return as soon as any point is invalid
@@ -1953,30 +1938,13 @@ bool TrajectoryExecutionManager::checkContextForCollisions(TrajectoryExecutionCo
 {
   // 2. Check that new trajectory does not collide with other active trajectories
 
-  /* Collision checking approaches:
-      1. swept volumes as collision objects : 
-        a. create one collision object of a whole trajectory 
-        b. create the collision objects for both trajectories
-        c. check if they collide
-      *Note* Collision objects could be huge, as we consider the whole arm and attach bodies
-      - Can be optimized by flattening or mergin overlapping meshes
-      - Can be optimized by keeping in memory the collision objects of an active trajectory, in case it is necessary latter.
-
-      2. swept volumes as gpu-voxel :
-        a. create a voxel from a trajectory
-        b. create the voxels for both trajectories
-        c. check if they collide
-      *Note* Needs a new dependency on GPU and gpu-voxels
-      
-      3. checking point by point :
-        a. create a new planning scene
-        b. update the planning scene with the first point of both trajectories
-        c. update the collision matrix to ignore everything except the two trajectories' links
-            The good thing here is that we can ignore half the robot links that are never going to be in collision
-        d. check if the two states collide, if so, return, no need to check anymore
+  /* Approach: checking point by point :
+        a. Get planning scene
+        b. Update the planning scene with the first point of both trajectories
+        c. Use robot's group name to check collisions of relevant links only 
+        d. Check if the two states collide, if so, return, no need to check anything else
       - Can be optimized by estimating the position of the robot in the active trajectory, then triming the active trajectory to check only the remaining states
-      - May be optimized by active trajectory backward, it is more likely that any collision would happen at the end of the trajectory than at the beginning.
-      - Anyway this approach is necessary to know if the current trajectory collides with the final state of the active trajectory
+      - May be optimized by active trajectory backward, it is more likely that any collision would happen at the end of the trajectory than at the beginning (given that the planning return a valid trajectory).
   */
 
   for (const auto& context_handles_pair : active_contexts_map)
@@ -1986,24 +1954,10 @@ bool TrajectoryExecutionManager::checkContextForCollisions(TrajectoryExecutionCo
 
     if (!checkCollisionBetweenTrajectories(context.trajectory_, currently_running_trajectory))
     {
-      // Do not wait just push to backlog
+      // Push to backlog
       ROS_DEBUG_STREAM_NAMED(name_, "Collision found between trajectory with duration: " << context.trajectory_parts_[0].joint_trajectory.points.back().time_from_start 
                                 <<  " and trajectory with duration: " << currently_running_context->trajectory_parts_[0].joint_trajectory.points.back().time_from_start);
       return false;
-
-      // ROS_INFO_NAMED(name_, "Waiting for active trajectory to finish");
-      // auto& active_handle = *context_handles_pair.second.begin();
-      // active_handle->waitForExecution();
-      // ROS_INFO_NAMED(name_, "Waited (after possible collision between moving trajectories)");
-      // moveit::core::RobotState robot_state = planning_scene_->getCurrentState();
-      // // TODO(cambel): Consider what the difference between this and just checking collisions with the current state is. 
-      // //               If there is none, move this to a separate "make sure trajectory does not cause collision" check (request from Michael).
-      // if (!checkCollisionsWithCurrentState(context.trajectory_))
-      // {
-      //   last_execution_status_ = moveit_controller_manager::ExecutionStatus::ABORTED;
-      //   return false;
-      // }
-      // ROS_INFO_NAMED(name_, "New trajectory is not in collision");
     }
   }
   return true;
@@ -2017,15 +1971,12 @@ bool TrajectoryExecutionManager::checkCollisionsWithCurrentState(moveit_msgs::Ro
     ROS_DEBUG_NAMED(name_, "Failed to validate trajectory: couldn't receive full current joint state within 1s");
     return false;
   }
-
   planning_scene_monitor::LockedPlanningSceneRO ps(planning_scene_monitor_);
-  // TODO(cambel): Consider what the difference between this and just checking collisions with the current state is. 
-  //               If there is none, move this to a separate "make sure trajectory does not cause collision" check (request from Michael).
   if (jointTrajPointToRobotState(trajectory.joint_trajectory, trajectory.joint_trajectory.points.size()-1, *current_state))
   {
     moveit_msgs::RobotState robot_state_msg;
     robotStateToRobotStateMsg(*current_state, robot_state_msg);
-    if(!ps->isPathValid(robot_state_msg, trajectory, trajectory.group_name)) // TODO(cambel): Get the group name for improved performance (?)
+    if(!ps->isPathValid(robot_state_msg, trajectory, trajectory.group_name))
     {
       ROS_DEBUG_NAMED(name_, "New trajectory collides with the current robot state. Abort!");
       last_execution_status_ = moveit_controller_manager::ExecutionStatus::ABORTED;
@@ -2180,10 +2131,10 @@ bool TrajectoryExecutionManager::hasCommonHandles(TrajectoryExecutionContext& co
   std::vector<moveit_controller_manager::MoveItControllerHandlePtr> ctx2_handles(context2.controllers_.size());
   getContextHandles(context1, ctx1_handles);
   getContextHandles(context2, ctx2_handles);
-  // TODO (cambel): surely there is a better way to compare these 2 vectors ;(
+  // TODO (cambel): surely there is a better way to compare these 2 vectors...
   for (auto ch : ctx2_handles)
     for (auto ph : ctx1_handles)
-      if (ch == ph)  // TODO (cambel): Confirm that this line works
+      if (ch == ph)
         return true;
   return false;
 }
