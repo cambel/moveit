@@ -61,7 +61,7 @@ void MoveGroupSequenceAction::initialize()
 {
   // start the move action server
   ROS_INFO_STREAM("initialize move group sequence action");
-  move_action_server_ = std::make_unique<actionlib::ActionServer<moveit_msgs::MoveGroupSequenceAction>>(
+  move_action_server_ = std::make_unique<MoveGroupSequenceActionServer>(
       root_node_handle_, "sequence_move_group",
       boost::bind(&MoveGroupSequenceAction::executeSequenceCallback, this, _1), false);
   // move_action_server_->registerPreemptCallback(boost::bind(&MoveGroupSequenceAction::preemptMoveCallback, this));

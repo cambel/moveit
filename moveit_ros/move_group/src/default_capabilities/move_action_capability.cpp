@@ -54,8 +54,8 @@ MoveGroupMoveAction::MoveGroupMoveAction()
 void MoveGroupMoveAction::initialize()
 {
   // start the move action server
-  move_action_server_.reset(new MoveGroupActionServer(
-      root_node_handle_, MOVE_ACTION, boost::bind(&MoveGroupMoveAction::executeMoveCallback, this, _1), false));
+  move_action_server_ = std::make_unique<MoveGroupActionServer>(
+      root_node_handle_, MOVE_ACTION, boost::bind(&MoveGroupMoveAction::executeMoveCallback, this, _1), false);
   move_action_server_->start();
 }
 
