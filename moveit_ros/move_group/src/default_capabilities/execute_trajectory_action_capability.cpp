@@ -50,9 +50,9 @@ MoveGroupExecuteTrajectoryAction::MoveGroupExecuteTrajectoryAction() : MoveGroup
 void MoveGroupExecuteTrajectoryAction::initialize()
 {
   // start the move action server
-  execute_action_server_.reset(new ExecuteTrajectoryActionServer(
+  execute_action_server_ = std::make_unique<ExecuteTrajectoryActionServer>(
       root_node_handle_, EXECUTE_ACTION_NAME,
-      boost::bind(&MoveGroupExecuteTrajectoryAction::executePathCallback, this, _1), false));
+      boost::bind(&MoveGroupExecuteTrajectoryAction::executePathCallback, this, _1), false);
   execute_action_server_->start();
 }
 
