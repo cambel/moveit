@@ -93,6 +93,7 @@ void MoveGroupMoveAction::executeMoveCallback(MoveGroupActionServer::GoalHandle 
     goal_handle.setAborted(action_res, response);
 
   setMoveState(IDLE);
+  ROS_WARN_STREAM_NAMED(getName(), "3. done with goal ID: " << goal_handle.getGoalID());
 }
 
 void MoveGroupMoveAction::executeMoveCallbackPlanAndExecute(const moveit_msgs::MoveGroupGoalConstPtr& goal,
@@ -197,7 +198,26 @@ void MoveGroupMoveAction::executeMoveCallbackPlanOnly(const moveit_msgs::MoveGro
     res.error_code_.val = moveit_msgs::MoveItErrorCodes::FAILURE;
   }
 
+  ROS_WARN_STREAM_NAMED(getName(), "2. Plan res: " << res.error_code_.val);
   convertToMsg(res.trajectory_, action_res.trajectory_start, action_res.planned_trajectory);
+  // ROS_WARN_STREAM_NAMED(getName(), "2.1 traj duration: " << res.trajectory_->getDuration());
+  // ROS_WARN_STREAM_NAMED(getName(), "2.2 traj points: " << res.trajectory_->getWayPointCount()) ;
+  std::ostringstream os;
+  os << "planning response\n---\n" << action_res.trajectory_start << "\n---\n";
+  ROS_WARN_STREAM_NAMED(getName(), "2.1 msg start state: " << os.str());
+
+  std::ostringstream os2;
+  os2 << "planning response\n---\n" << action_res.planned_trajectory << "\n---\n";
+  ROS_WARN_STREAM_NAMED(getName(), "2.2 msg plan traj: " << os2.str());
+
+  std::ostringstream os3;
+  os3 << "planning response\n---\n" << action_res.executed_trajectory << "\n---\n";
+  ROS_WARN_STREAM_NAMED(getName(), "2.3 msg exe traj: " << os3.str());
+  ROS_WARN_STREAM_NAMED(getName(), "2.4 msg planning time: " << action_res.planning_time) ;
+    std::ostringstream os4;
+  os4 << "planning response\n---\n" << action_res.error_code << "\n---\n";
+  ROS_WARN_STREAM_NAMED(getName(), "2.5 msg error code: " << os4.str());
+
   action_res.error_code = res.error_code_;
   action_res.planning_time = res.planning_time_;
 }
