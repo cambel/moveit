@@ -1839,12 +1839,11 @@ void TrajectoryExecutionManager::updateActiveHandlesAndContexts(std::set<moveit_
 {
   ROS_DEBUG_STREAM_NAMED(name_, "Entered updateActiveHandlesAndContexts");
   // Go through list of current trajectories, check the statuses of all handles
-  // for (auto& context_controllers_pair : active_contexts_map)  // first: context. second: handles_ for that trajectory
   for (auto it = active_contexts_map.begin(); it != active_contexts_map.end(); )
   {
     auto& context = it->first;
     auto& handles_ = it->second;
-    ROS_DEBUG_STREAM_NAMED(name_, "Update context");
+    ROS_DEBUG_STREAM_NAMED(name_, "Update context with handles.size: " << handles_.size());
 
     // TODO(felixvd): This doesn't cover all the cases, like TIMED_OUT, CONTROL_FAILED. Ugh.
     bool some_aborted = false;
@@ -1862,18 +1861,21 @@ void TrajectoryExecutionManager::updateActiveHandlesAndContexts(std::set<moveit_
           last_status == moveit_controller_manager::ExecutionStatus::PREEMPTED)
           // TODO: This converts everything to ABORTED.
       {
+        ROS_DEBUG_STREAM_NAMED(name_, "Result handle " << handle->getName() << ": some_aborted");
         some_aborted = true;
         all_succeeded = false;
         all_running = false;
       }
       else if (last_status == moveit_controller_manager::ExecutionStatus::SUCCEEDED)
       {
+        ROS_DEBUG_STREAM_NAMED(name_, "Result handle " << handle->getName() << ": some_succeeded");
         all_aborted = false;
         some_succeeded = true;
         all_running = false;
       }
       else if (last_status == moveit_controller_manager::ExecutionStatus::RUNNING)
       {
+        ROS_DEBUG_STREAM_NAMED(name_, "Result handle " << handle->getName() << ": some_running");
         all_aborted = false;
         all_succeeded = false;
         some_running = true;
@@ -1893,7 +1895,9 @@ void TrajectoryExecutionManager::updateActiveHandlesAndContexts(std::set<moveit_
     if (combined_status == moveit_controller_manager::ExecutionStatus::SUCCEEDED ||
         combined_status == moveit_controller_manager::ExecutionStatus::ABORTED)
     {
+      ROS_DEBUG_STREAM_NAMED(name_, "Calling complete_callback with status " << combined_status);
       context->execution_complete_callback(combined_status);
+      ROS_DEBUG_STREAM_NAMED(name_, "== Returned. Erasing.");
       it = active_contexts_map.erase(it);
       // TODO(cambel): remove used_handles here, lock handles until a context is fully completed
     }else{

@@ -54,6 +54,7 @@ void MoveGroupExecuteTrajectoryAction::initialize()
       root_node_handle_, EXECUTE_ACTION_NAME,
       boost::bind(&MoveGroupExecuteTrajectoryAction::executePathCallback, this, _1), false));
   execute_action_server_->start();
+  ROS_DEBUG_STREAM_NAMED(name_, "executeTrajectoryAction server started up"); 
 }
 
 void MoveGroupExecuteTrajectoryAction::executePathCallback(ExecuteTrajectoryActionServer::GoalHandle goal)

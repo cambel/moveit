@@ -74,7 +74,7 @@ LastPointController::~LastPointController() = default;
 
 bool LastPointController::sendTrajectory(const moveit_msgs::RobotTrajectory& t)
 {
-  ROS_INFO_NAMED(name_, "Fake execution of trajectory: Last point start");
+  ROS_INFO_STREAM_NAMED(name_, "Fake execution of trajectory: Last point start: " << getName());
   if (t.joint_trajectory.points.empty())
     return true;
 
@@ -89,7 +89,7 @@ bool LastPointController::sendTrajectory(const moveit_msgs::RobotTrajectory& t)
   js.effort = last.effort;
   pub_.publish(js);
   status_ = moveit_controller_manager::ExecutionStatus::SUCCEEDED;
-  ROS_INFO_NAMED(name_, "Fake execution of trajectory: Last point done");
+  ROS_INFO_STREAM_NAMED(name_, "Fake execution of trajectory: Last point done: " << getName());
 
   return true;
 }
@@ -135,7 +135,7 @@ bool ThreadedController::sendTrajectory(const moveit_msgs::RobotTrajectory& t)
 bool ThreadedController::cancelExecution()
 {
   cancelTrajectory();
-  ROS_INFO_NAMED(name_, "Fake trajectory execution cancelled");
+  ROS_INFO_STREAM_NAMED(name_, "Fake trajectory execution cancelled: " << getName());
   status_ = moveit_controller_manager::ExecutionStatus::ABORTED;
   return true;
 }
@@ -162,7 +162,7 @@ ViaPointController::~ViaPointController() = default;
 
 void ViaPointController::execTrajectory(const moveit_msgs::RobotTrajectory& t)
 {
-  ROS_INFO_NAMED(name_, "Fake execution of trajectory: start");
+  ROS_INFO_STREAM_NAMED(name_, "Fake execution of trajectory: start: " << getName());
   status_ = moveit_controller_manager::ExecutionStatus::RUNNING;
   sensor_msgs::JointState js;
   js.header = t.joint_trajectory.header;
@@ -189,7 +189,7 @@ void ViaPointController::execTrajectory(const moveit_msgs::RobotTrajectory& t)
     pub_.publish(js);
   }
   status_ = moveit_controller_manager::ExecutionStatus::SUCCEEDED;
-  ROS_INFO_NAMED(name_, "Fake execution of trajectory: done");
+  ROS_INFO_STREAM_NAMED(name_, "Fake execution of trajectory: done: " << getName());
 }
 
 InterpolatingController::InterpolatingController(const std::string& name, const std::vector<std::string>& joints,
@@ -223,7 +223,7 @@ void interpolate(sensor_msgs::JointState& js, const trajectory_msgs::JointTrajec
 
 void InterpolatingController::execTrajectory(const moveit_msgs::RobotTrajectory& t)
 {
-  ROS_INFO_NAMED(name_, "Fake execution of trajectory: start");
+  ROS_INFO_STREAM_NAMED(name_, "Fake execution of trajectory: start: " << getName());
   status_ = moveit_controller_manager::ExecutionStatus::RUNNING;
   if (t.joint_trajectory.points.empty())
     return;
@@ -275,7 +275,7 @@ void InterpolatingController::execTrajectory(const moveit_msgs::RobotTrajectory&
   js.header.stamp = ros::Time::now();
   pub_.publish(js);
   status_ = moveit_controller_manager::ExecutionStatus::SUCCEEDED;
-  ROS_INFO_NAMED(name_, "Fake execution of trajectory: done");
+  ROS_INFO_STREAM_NAMED(name_, "Fake execution of trajectory: done: " << getName());
 }
 
 }  // end namespace moveit_fake_controller_manager
