@@ -55,8 +55,22 @@ void MoveGroupMoveAction::initialize()
 {
   // start the move action server
   move_action_server_.reset(new MoveGroupActionServer(
-      root_node_handle_, MOVE_ACTION, boost::bind(&MoveGroupMoveAction::executeMoveCallback, this, _1), false));
+      root_node_handle_, MOVE_ACTION, boost::bind(&MoveGroupMoveAction::executeCallback, this, _1), false));
   move_action_server_->start();
+}
+
+void MoveGroupMoveAction::executeCallback(MoveGroupActionServer::GoalHandle goal_handle)
+{
+  {
+    boost::mutex::scoped_lock slock(planning_thread_mutex_);
+    ROS_WARN_NAMED(getName(), "Push new planning request");
+    goal_handles_.push_back(goal_handle);
+    if (!planning_thread_)
+      planning_thread_.reset(
+          new boost::thread(boost::bind(&MoveGroupMoveAction::planning, this)));
+  }
+  planning_condition_.notify_all(); 
+  ROS_WARN_NAMED(getName(), "Done executeCallback");
 }
 
 void MoveGroupMoveAction::executeMoveCallback(MoveGroupActionServer::GoalHandle goal_handle)
@@ -255,6 +269,36 @@ void MoveGroupMoveAction::setMoveState(MoveGroupState state)
   // move_feedback_.state = stateToStr(state);
   // move_action_server_->publishFeedback(move_feedback_);
 }
+
+void MoveGroupMoveAction::planning()
+{
+  ROS_WARN_NAMED(getName(), "Start planning thread");
+  while (true)
+  {
+    ROS_WARN_NAMED(getName(), "planning thread top");
+    {
+      boost::unique_lock<boost::mutex> ulock(planning_thread_mutex_);
+      while (goal_handles_.empty())
+        planning_condition_.wait(ulock);
+    }
+    while (!goal_handles_.empty())
+    {
+      ROS_WARN_NAMED(getName(), "Pop one request");
+      MoveGroupActionServer::GoalHandle goal_handle;
+      {
+        boost::mutex::scoped_lock slock(planning_thread_mutex_);
+        goal_handle = goal_handles_.front();
+        goal_handles_.pop_front();
+        if (goal_handles_.empty())
+          planning_condition_.notify_all();
+      }
+      ROS_WARN_NAMED(getName(), "process request");
+      executeMoveCallback(goal_handle);
+      ROS_WARN_NAMED(getName(), "request processed");
+    }
+  }
+}
+
 }  // namespace move_group
 
 #include <class_loader/class_loader.hpp>

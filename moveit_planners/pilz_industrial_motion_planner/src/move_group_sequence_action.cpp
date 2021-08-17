@@ -63,12 +63,26 @@ void MoveGroupSequenceAction::initialize()
   ROS_INFO_STREAM("initialize move group sequence action");
   move_action_server_.reset(new actionlib::ActionServer<moveit_msgs::MoveGroupSequenceAction>(
       root_node_handle_, "sequence_move_group",
-      boost::bind(&MoveGroupSequenceAction::executeSequenceCallback, this, _1), false));
+      boost::bind(&MoveGroupSequenceAction::executeCallback, this, _1), false));
   // move_action_server_->registerPreemptCallback(boost::bind(&MoveGroupSequenceAction::preemptMoveCallback, this));
   move_action_server_->start();
 
   command_list_manager_ = std::make_unique<pilz_industrial_motion_planner::CommandListManager>(
       ros::NodeHandle("~"), context_->planning_scene_monitor_->getRobotModel());
+}
+
+void MoveGroupSequenceAction::executeCallback(MoveGroupSequenceActionServer::GoalHandle goal_handle)
+{
+  {
+    boost::mutex::scoped_lock slock(planning_thread_mutex_);
+    ROS_WARN_NAMED(name_, "Sequence: Push new planning request");
+    goal_handles_.push_back(goal_handle);
+    if (!planning_thread_)
+      planning_thread_.reset(
+          new boost::thread(boost::bind(&MoveGroupSequenceAction::planning, this)));
+  }
+  planning_condition_.notify_all(); 
+  ROS_WARN_NAMED(name_, "Sequence: Done executeCallback");
 }
 
 void MoveGroupSequenceAction::executeSequenceCallback(MoveGroupSequenceActionServer::GoalHandle goal_handle)
@@ -317,6 +331,35 @@ void MoveGroupSequenceAction::setMoveState(move_group::MoveGroupState state)
   // move_state_ = state;
   // move_feedback_.state = stateToStr(state);
   // move_action_server_->publishFeedback(move_feedback_);
+}
+
+void MoveGroupSequenceAction::planning()
+{
+  ROS_WARN_NAMED(name_, "Sequence: Start planning thread");
+  while (true)
+  {
+    ROS_WARN_NAMED(name_, "Sequence: planning thread top");
+    {
+      boost::unique_lock<boost::mutex> ulock(planning_thread_mutex_);
+      while (goal_handles_.empty())
+        planning_condition_.wait(ulock);
+    }
+    while (!goal_handles_.empty())
+    {
+      ROS_WARN_NAMED(name_, "Sequence: Pop one request");
+      MoveGroupSequenceActionServer::GoalHandle goal_handle;
+      {
+        boost::mutex::scoped_lock slock(planning_thread_mutex_);
+        goal_handle = goal_handles_.front();
+        goal_handles_.pop_front();
+        if (goal_handles_.empty())
+          planning_condition_.notify_all();
+      }
+      ROS_WARN_NAMED(name_, "Sequence: process request");
+      executeSequenceCallback(goal_handle);
+      ROS_WARN_NAMED(name_, "Sequence: request processed");
+    }
+  }
 }
 
 }  // namespace pilz_industrial_motion_planner

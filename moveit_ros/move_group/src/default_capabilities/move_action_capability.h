@@ -52,6 +52,7 @@ public:
   void initialize() override;
 
 private:
+  void executeCallback(MoveGroupActionServer::GoalHandle goal_handle);
   void executeMoveCallback(MoveGroupActionServer::GoalHandle goal_handle);
   void executeMoveCallbackPlanAndExecute(const moveit_msgs::MoveGroupGoalConstPtr& goal,
                                          moveit_msgs::MoveGroupResult& action_res);
@@ -62,12 +63,17 @@ private:
   void setMoveState(MoveGroupState state);
   bool planUsingPlanningPipeline(const planning_interface::MotionPlanRequest& req,
                                  plan_execution::ExecutableMotionPlan& plan);
+  void planning();
 
   std::unique_ptr<MoveGroupActionServer> move_action_server_;
   moveit_msgs::MoveGroupFeedback move_feedback_;
 
   MoveGroupState move_state_;
   bool preempt_requested_;
-  std::vector<MoveGroupActionServer::GoalHandle> goal_handles_;
+  std::deque<MoveGroupActionServer::GoalHandle> goal_handles_;
+  std::unique_ptr<boost::thread> planning_thread_;
+  boost::mutex planning_thread_mutex_;
+  boost::condition_variable planning_condition_;
+
 };
 }  // namespace move_group

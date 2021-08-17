@@ -65,6 +65,7 @@ private:
   using PlannedTrajMsgs = moveit_msgs::MotionSequenceResponse::_planned_trajectories_type;
 
 private:
+  void executeCallback(MoveGroupSequenceActionServer::GoalHandle goal_handle);
   void executeSequenceCallback(MoveGroupSequenceActionServer::GoalHandle goal_handle);
   void executeSequenceCallbackPlanAndExecute(const moveit_msgs::MoveGroupSequenceGoalConstPtr& goal,
                                              moveit_msgs::MoveGroupSequenceResult& action_res);
@@ -76,16 +77,24 @@ private:
   void setMoveState(move_group::MoveGroupState state);
   bool planUsingSequenceManager(const moveit_msgs::MotionSequenceRequest& req,
                                 plan_execution::ExecutableMotionPlan& plan);
+  void planning();
 
 private:
   static void convertToMsg(const ExecutableTrajs& trajs, StartStatesMsg& startStatesMsg,
                            PlannedTrajMsgs& plannedTrajsMsgs);
 
 private:
+  const std::string name_ = "move_group_sequence_action";
   std::unique_ptr<actionlib::ActionServer<moveit_msgs::MoveGroupSequenceAction>> move_action_server_;
   moveit_msgs::MoveGroupSequenceFeedback move_feedback_;
 
   move_group::MoveGroupState move_state_{ move_group::IDLE };
   std::unique_ptr<pilz_industrial_motion_planner::CommandListManager> command_list_manager_;
+  
+  std::deque<MoveGroupSequenceActionServer::GoalHandle> goal_handles_;
+  std::unique_ptr<boost::thread> planning_thread_;
+  boost::mutex planning_thread_mutex_;
+  boost::condition_variable planning_condition_;
+
 };
 }  // namespace pilz_industrial_motion_planner
