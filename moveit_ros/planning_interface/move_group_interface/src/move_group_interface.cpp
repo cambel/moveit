@@ -915,11 +915,11 @@ public:
     }
   }
 
-  MoveItErrorCode waitForMotionResult()
+  MoveItErrorCode waitForMotionResult(const double timeout)
   {
-    if (!execute_action_client_->waitForResult())
+    if (!execute_action_client_->waitForResult(ros::Duration(timeout)))
     {
-      ROS_INFO_STREAM_NAMED(LOGNAME, "ExecuteTrajectory action returned early");
+      ROS_ERROR_STREAM_NAMED(LOGNAME, "ExecuteTrajectory action returned early 2");
     }
 
     if (execute_action_client_->getState() == actionlib::SimpleClientGoalState::SUCCEEDED)
@@ -1533,9 +1533,9 @@ moveit::core::MoveItErrorCode MoveGroupInterface::execute(const moveit_msgs::Rob
   return impl_->execute(trajectory, true);
 }
 
-MoveItErrorCode MoveGroupInterface::waitForMotionResult()
+MoveItErrorCode MoveGroupInterface::waitForMotionResult(const double timeout)
 {
-  return impl_->waitForMotionResult();
+  return impl_->waitForMotionResult(timeout);
 }
 
 MoveItErrorCode MoveGroupInterface::plan(Plan& plan)

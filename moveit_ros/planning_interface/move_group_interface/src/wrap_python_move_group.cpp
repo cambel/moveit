@@ -469,9 +469,9 @@ public:
     return asyncExecute(plan) == moveit::core::MoveItErrorCode::SUCCESS;
   }
 
-  bool waitForMotionResultPython()
+  bool waitForMotionResultPython(const double timeout)
   {
-    return waitForMotionResult() == MoveItErrorCode::SUCCESS;
+    return waitForMotionResult(timeout) == MoveItErrorCode::SUCCESS;
   }
 
   bp::tuple planPython()
