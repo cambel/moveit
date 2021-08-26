@@ -125,6 +125,7 @@ void MoveGroupExecuteTrajectoryAction::executePathCallback(ExecuteTrajectoryActi
       }
       // ROS_DEBUG_STREAM_NAMED(name_, "goal set to " << response);
     }
+    ros::Duration(0.1).sleep(); // Reduce risk of reply being lost
     }; // end of lambda expression
 
     {
