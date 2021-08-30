@@ -898,7 +898,7 @@ public:
       return moveit::core::MoveItErrorCode::SUCCESS;
     }
 
-    if (!execute_action_client_->waitForResult())
+    if (!execute_action_client_->waitForResult(ros::Duration(45.0))) // temporary fix to action client not being read
     {
       ROS_INFO_STREAM_NAMED(LOGNAME, "ExecuteTrajectory action returned early");
     }

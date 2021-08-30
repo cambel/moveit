@@ -1841,6 +1841,10 @@ void TrajectoryExecutionManager::updateActiveHandlesAndContexts(std::set<moveit_
   // Go through list of current trajectories, check the statuses of all handles
   for (auto it = active_contexts_map.begin(); it != active_contexts_map.end(); )
   {
+    if (it != active_contexts_map.begin())
+      ROS_INFO_STREAM_NAMED(name_, "Waiting for action client...");
+      ros::Duration(0.3).sleep(); // Reduce risk of reply being lost. wait for the action client to read
+
     auto& context = it->first;
     auto& handles_ = it->second;
     ROS_DEBUG_STREAM_NAMED(name_, "Update context with handles.size: " << handles_.size());
