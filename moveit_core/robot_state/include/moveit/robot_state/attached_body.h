@@ -207,6 +207,18 @@ public:
   /** \brief Set the scale for the shapes of this attached object */
   void setScale(double scale);
 
+  /** \brief Get the visual geometry url of this attached object (only used for display) */
+  const std::string& getVisualGeometryUrl() const
+  {
+    return visual_geometry_mesh_url_;
+  }
+
+  /** \brief Get the visual geometry's pose (relative to the object pose) */
+  const Eigen::Isometry3d& getVisualGeometryPose() const
+  {
+    return visual_geometry_pose_;
+  }
+
   /** \brief Recompute global_collision_body_transform given the transform of the parent link */
   void computeTransform(const Eigen::Isometry3d& parent_link_global_transform);
 
@@ -222,6 +234,13 @@ private:
 
   /** \brief The transform from the model frame to the attached body's pose  */
   Eigen::Isometry3d global_pose_;
+
+  /** \brief (Optional) The URL of the mesh used for the visual representation of this object.
+   * Only used for display in Rviz, not for collision checking. */
+  std::string visual_geometry_mesh_url_;
+
+  /** \brief The pose of the visual geometry (mesh). */
+  Eigen::Isometry3d visual_geometry_pose_;
 
   /** \brief The geometries of the attached body */
   std::vector<shapes::ShapeConstPtr> shapes_;

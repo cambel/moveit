@@ -57,6 +57,8 @@ AttachedBody::AttachedBody(const LinkModel* parent, const std::string& id, const
   , detach_posture_(detach_posture)
   , subframe_poses_(subframe_poses)
   , global_subframe_poses_(subframe_poses)
+  , visual_geometry_mesh_url_(visual_geometry_mesh_url)
+  , visual_geometry_pose_(visual_geometry_pose)
 {
   ASSERT_ISOMETRY(pose)  // unsanitized input, could contain a non-isometry
   for (const auto& t : shape_poses_)
