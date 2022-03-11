@@ -234,6 +234,13 @@ public:
   /** \brief Set the pose of an object. The pose is specified in the world frame. */
   bool setObjectPose(const std::string& object_id, const Eigen::Isometry3d& pose);
 
+
+  /** \brief Move the object pose (thus moving all shapes and subframes in the object)
+   * to the given transform specified in world frame. The transform replaces the old pose.
+   */
+  bool moveObjectAbsolute(const std::string& object_id, const Eigen::Isometry3d& transform);
+
+
   /** \brief Remove shape from object.
    * Shape equality is verified by comparing pointers. Ownership of the
    * object is renounced (i.e. object is deleted if no external references
@@ -250,9 +257,6 @@ public:
 
   /** \brief Set subframes on an object. The frames are relative to the object pose. */
   bool setSubframesOfObject(const std::string& object_id, const moveit::core::FixedTransformsMap& subframe_poses);
-
-  /** \brief Set the pose of an object. The pose is specified in the world frame. */
-  bool setObjectPose(const std::string& object_id, const Eigen::Isometry3d& pose);
 
   /** \brief Set the visual geometry of an object. The pose is relative to the object pose. */
   bool setObjectVisualGeometry(const std::string& object_id, const std::string& mesh_url,
