@@ -82,6 +82,7 @@ bool ompl_interface::ValidConstrainedSampler::sample(ob::State* state)
   //  moveit::Profiler::ScopedBlock pblock("ValidConstrainedSampler::sample");
   if (constraint_sampler_)
   {
+    planning_context_->getOMPLStateSpace()->copyToRobotState(work_state_, state);
     if (constraint_sampler_->sample(work_state_, planning_context_->getCompleteInitialRobotState(),
                                     planning_context_->getMaximumStateSamplingAttempts()))
     {

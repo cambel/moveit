@@ -1,0 +1,5 @@
+<launch>
+  <include file="$(find dual_arm_moveit)/launch/test_environment.launch"/>
+  <test pkg="moveit_ros_planning_interface" type="trac_ik_test.py" test-name="trac_ik_test"
+        time-limit="300" args=""/>
+</launch>
