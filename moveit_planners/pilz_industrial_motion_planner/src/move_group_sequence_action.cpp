@@ -63,7 +63,7 @@ void MoveGroupSequenceAction::initialize()
   ROS_INFO_STREAM("initialize move group sequence action");
   move_action_server_ = std::make_unique<actionlib::ActionServer<moveit_msgs::MoveGroupSequenceAction>>(
       root_node_handle_, "sequence_move_group", [this](const auto& goal) { executeSequenceCallback(goal); }, false);
-//   move_action_server_->registerPreemptCallback([this] { preemptMoveCallback(); });
+  //   move_action_server_->registerPreemptCallback([this] { preemptMoveCallback(); });
   move_action_server_->start();
 
   command_list_manager_ = std::make_unique<pilz_industrial_motion_planner::CommandListManager>(

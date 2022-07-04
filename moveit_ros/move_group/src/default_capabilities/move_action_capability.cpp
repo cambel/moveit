@@ -56,7 +56,7 @@ void MoveGroupMoveAction::initialize()
   // start the move action server
   move_action_server_ = std::make_unique<MoveGroupActionServer>(
       root_node_handle_, MOVE_ACTION, [this](const auto& goal) { executeMoveCallback(goal); }, false);
-//   move_action_server_->registerPreemptCallback([this] { preemptMoveCallback(); });
+  //   move_action_server_->registerPreemptCallback([this] { preemptMoveCallback(); });
   move_action_server_->start();
 }
 
@@ -81,7 +81,7 @@ void MoveGroupMoveAction::executeMoveCallback(MoveGroupActionServer::GoalHandle 
   }
   else
   {
-    // TODO: add some mutex here, keep simpleActonServer logic for Blocking-Trajectories 
+    // TODO: add some mutex here, keep simpleActonServer logic for Blocking-Trajectories
     executeMoveCallbackPlanAndExecute(goal, action_res);
   }
 
