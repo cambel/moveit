@@ -291,8 +291,11 @@ private:
                          std::set<moveit_controller_manager::MoveItControllerHandlePtr>& handles);
   bool checkCollisionBetweenTrajectories(const moveit_msgs::RobotTrajectory& new_trajectory,
                                          const moveit_msgs::RobotTrajectory& active_trajectory);
-  bool checkContextForCollisions(const TrajectoryExecutionContext& context,
-                                 const std::vector<std::shared_ptr<TrajectoryExecutionContext>>& active_contexts);
+  // Check that the new trajectory does not collide with other active trajectories
+  // Approach: checking point by point using planning_scene -> isPathValid()
+  bool checkCollisionsWithActiveTrajectories(
+      const TrajectoryExecutionContext& context,
+      const std::vector<std::shared_ptr<TrajectoryExecutionContext>>& active_trajectories);
   bool checkCollisionsWithCurrentState(const moveit_msgs::RobotTrajectory& trajectory);
   moveit_controller_manager::ExecutionStatus
   monitorTrajectoryExecutionDuration(const TrajectoryExecutionContext& context,

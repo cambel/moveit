@@ -1094,11 +1094,12 @@ void TrajectoryExecutionManager::executeThread(const TrajectoryExecutionContext&
   // if we already got a stop request before we even started anything, we abort
   if (stop_execution_)
   {
-    ROS_ERROR_NAMED(LOGNAME, "Abort execution 1");
+    ROS_DEBUG_NAMED(LOGNAME, "Execution stopped before starting");
     if (!context.execution_complete_callback.empty())
       context.execution_complete_callback(moveit_controller_manager::ExecutionStatus::ABORTED);
     return;
   }
+
   std::set<moveit_controller_manager::MoveItControllerHandlePtr> required_handles;
   std::shared_ptr<TrajectoryExecutionContext> context_ptr = std::make_shared<TrajectoryExecutionContext>(context);
 
@@ -1109,7 +1110,7 @@ void TrajectoryExecutionManager::executeThread(const TrajectoryExecutionContext&
     // 1.1. Ensure active controllers
     if (!areControllersActive(context.controllers_))
     {
-      ROS_ERROR_NAMED(LOGNAME, "Abort execution 2");
+      ROS_ERROR_NAMED(LOGNAME, "Abort execution: Trajectory controllers are not active");
       if (!context.execution_complete_callback.empty())
         context.execution_complete_callback(moveit_controller_manager::ExecutionStatus::ABORTED);
       return;
@@ -1130,9 +1131,9 @@ void TrajectoryExecutionManager::executeThread(const TrajectoryExecutionContext&
           ROS_DEBUG_STREAM_NAMED(LOGNAME, "Handle "
                                               << (*std::next(required_handles.begin(), i))->getName()
                                               << " already in use: " << (*uit)->getLastExecutionStatus().asString());
+          ROS_ERROR_NAMED(LOGNAME, "Abort execution: Controllers are busy");
           if (!context.execution_complete_callback.empty())
             context.execution_complete_callback(moveit_controller_manager::ExecutionStatus::ABORTED);
-          ROS_ERROR_NAMED(LOGNAME, "Abort execution 3");
           return;
         }
         else
@@ -1144,19 +1145,19 @@ void TrajectoryExecutionManager::executeThread(const TrajectoryExecutionContext&
     {
       if (!context.execution_complete_callback.empty())
         context.execution_complete_callback(moveit_controller_manager::ExecutionStatus::ABORTED);
-      ROS_ERROR_NAMED(LOGNAME, "Abort execution 4");
+      ROS_ERROR_NAMED(LOGNAME, "Abort execution: Trajectory does not match current state");
       return;
     }
     // 1.4. Collision checks
     // 1.4.1. Check collisions between new trajectory and currently active trajectories
     // 1.4.2. Check collisions between new trajectory and current state of the planning scene
     active_trajectories_mutex_.lock();
-    if ((!active_trajectories_.empty() && !checkContextForCollisions(context, active_trajectories_)) ||
+    if ((!active_trajectories_.empty() && !checkCollisionsWithActiveTrajectories(context, active_trajectories_)) ||
         !checkCollisionsWithCurrentState(context.trajectory_))
     {
       if (!context.execution_complete_callback.empty())
         context.execution_complete_callback(moveit_controller_manager::ExecutionStatus::ABORTED);
-      ROS_ERROR_NAMED(LOGNAME, "Abort execution 5");
+      ROS_ERROR_NAMED(LOGNAME, "Abort execution: Trajectory in collision");
       return;
     }
     active_trajectories_mutex_.unlock();
@@ -1171,8 +1172,10 @@ void TrajectoryExecutionManager::executeThread(const TrajectoryExecutionContext&
       {
         ROS_DEBUG_STREAM_NAMED(LOGNAME, "Sending trajectory to controller: "
                                             << (*std::next(required_handles.begin(), i))->getName());
-        ROS_DEBUG_STREAM_NAMED(
-            LOGNAME, "duration: " << context.trajectory_parts_[i].joint_trajectory.points.back().time_from_start);
+        ROS_DEBUG_STREAM_NAMED(LOGNAME,
+                               "(group name, duration): "
+                                   << context.trajectory_.group_name << ", "
+                                   << context.trajectory_parts_[i].joint_trajectory.points.back().time_from_start);
         ok = (*std::next(required_handles.begin(), i))->sendTrajectory(context.trajectory_parts_[i]);
       }
       catch (std::exception& ex)
@@ -1194,9 +1197,9 @@ void TrajectoryExecutionManager::executeThread(const TrajectoryExecutionContext&
                         context.trajectory_parts_.size(), (*std::next(required_handles.begin(), i))->getName().c_str());
         if (i > 0)
           ROS_ERROR_NAMED(LOGNAME, "Cancelling previously sent trajectory parts");
+        ROS_ERROR_NAMED(LOGNAME, "Abort execution: Failed to send trajectory");
         if (!context.execution_complete_callback.empty())
           context.execution_complete_callback(moveit_controller_manager::ExecutionStatus::ABORTED);
-        ROS_ERROR_NAMED(LOGNAME, "Abort execution 6");
         return;
       }
     }
@@ -1215,6 +1218,8 @@ void TrajectoryExecutionManager::executeThread(const TrajectoryExecutionContext&
 
   if (result == moveit_controller_manager::ExecutionStatus::SUCCEEDED)
     waitForRobotToStop(context);
+  else
+    ROS_ERROR_NAMED(LOGNAME, "Abort execution: Failed during trajectory execution duration monitoring");
 
   if (!context.execution_complete_callback.empty())
     context.execution_complete_callback(result);
@@ -1768,8 +1773,7 @@ void TrajectoryExecutionManager::getContextHandles(
 bool TrajectoryExecutionManager::checkCollisionBetweenTrajectories(const moveit_msgs::RobotTrajectory& new_trajectory,
                                                                    const moveit_msgs::RobotTrajectory& active_trajectory)
 {
-  ROS_DEBUG_STREAM_NAMED(LOGNAME, "Start checkCollision between trajectories using PlanningScene.isPathValid()");
-  // before we start checking collisions, ensure that we have the latest robot state received...
+  // Before we start checking collisions, ensure that we have the latest robot state received...
   planning_scene_monitor_->waitForCurrentRobotState(ros::Time::now());
   planning_scene_monitor_->updateFrameTransforms();
 
@@ -1777,7 +1781,7 @@ bool TrajectoryExecutionManager::checkCollisionBetweenTrajectories(const moveit_
   moveit::core::RobotState start_state = ps->getCurrentState();
 
   moveit_msgs::RobotState start_state_msg;
-  ROS_DEBUG_STREAM_NAMED(LOGNAME, "Compute collision check");
+
   for (std::size_t i = 0; i < active_trajectory.joint_trajectory.points.size(); ++i)
     if (jointTrajPointToRobotState(active_trajectory.joint_trajectory, i, start_state))
     {
@@ -1792,34 +1796,25 @@ bool TrajectoryExecutionManager::checkCollisionBetweenTrajectories(const moveit_
   return true;
 }
 
-bool TrajectoryExecutionManager::checkContextForCollisions(
+bool TrajectoryExecutionManager::checkCollisionsWithActiveTrajectories(
     const TrajectoryExecutionContext& context,
-    const std::vector<std::shared_ptr<TrajectoryExecutionContext>>& active_contexts)
+    const std::vector<std::shared_ptr<TrajectoryExecutionContext>>& active_trajectories)
 {
-  // 2. Check that the new trajectory does not collide with other active trajectories
-
-  /* Approach: checking point by point :
-        a. Get planning scene
-        b. Update the planning scene with the first point of both trajectories
-        c. Use robot's group name to check collisions of relevant links only
-        d. Check if the two states collide, if so, return, no need to check anything else
+  /* TODO (cambel)
       - Can be optimized by estimating the position of the robot in the active trajectory, then triming the active
      trajectory to check only the remaining states
-      - May be optimized by active trajectory backward, it is more likely that any collision would happen at the end of
-     the trajectory than at the beginning (given that the planning return a valid trajectory).
   */
-
-  for (const auto& currently_running_context : active_contexts)
+  for (const auto& currently_running_context : active_trajectories)
   {
-    moveit_msgs::RobotTrajectory& currently_running_trajectory = currently_running_context->trajectory_;
-
-    if (!checkCollisionBetweenTrajectories(context.trajectory_, currently_running_trajectory))
+    if (!checkCollisionBetweenTrajectories(context.trajectory_, currently_running_context->trajectory_))
     {
       ROS_DEBUG_STREAM_NAMED(
           LOGNAME,
-          "Collision found between trajectory with duration: "
+          "Collision found between trajectory with (group_name, duration): "
+              << context.trajectory_.group_name << ", "
               << context.trajectory_parts_[0].joint_trajectory.points.back().time_from_start
-              << " and trajectory with duration: "
+              << " and trajectory with (group_name, duration): " << currently_running_context->trajectory_.group_name
+              << ", "
               << currently_running_context->trajectory_parts_[0].joint_trajectory.points.back().time_from_start);
       return false;
     }
@@ -1838,7 +1833,10 @@ bool TrajectoryExecutionManager::checkCollisionsWithCurrentState(const moveit_ms
   robotStateToRobotStateMsg(ps->getCurrentState(), current_state_msg);
   if (!ps->isPathValid(current_state_msg, trajectory, trajectory.group_name))
   {
-    ROS_DEBUG_NAMED(LOGNAME, "New trajectory collides with the current robot state. Abort!");
+    ROS_DEBUG_STREAM_NAMED(LOGNAME, "Trajectory (group_name, duration) "
+                                        << trajectory.group_name << ", "
+                                        << trajectory.joint_trajectory.points.back().time_from_start
+                                        << " collides with the current scene. Abort!");
     return false;
   }
   return true;
