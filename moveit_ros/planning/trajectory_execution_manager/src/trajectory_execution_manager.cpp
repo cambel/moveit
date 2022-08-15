@@ -126,6 +126,7 @@ void TrajectoryExecutionManager::initialize()
   execution_velocity_scaling_ = 1.0;
   allowed_start_tolerance_ = 0.01;
   allow_continuous_execution_ = false;
+  stop_execution_ = false;
 
   allowed_execution_duration_scaling_ = DEFAULT_CONTROLLER_GOAL_DURATION_SCALING;
   allowed_goal_duration_margin_ = DEFAULT_CONTROLLER_GOAL_DURATION_MARGIN;
@@ -309,8 +310,8 @@ bool TrajectoryExecutionManager::push(const moveit_msgs::RobotTrajectory& trajec
     if (allow_continuous_execution_)
     {
       ROS_INFO_NAMED(LOGNAME, "Creating thread");
-      std::make_unique<boost::thread>([this](const TrajectoryExecutionContext& c) { executeThread(c); }, 
-                                      *context.get());
+      continuous_execution_threads_.push_back(std::make_unique<boost::thread>(
+          [this](const TrajectoryExecutionContext& c) { executeThread(c); }, *context.get()));
     }
     else
       trajectories_.push_back(std::move(context));
@@ -968,6 +969,15 @@ void TrajectoryExecutionManager::stopExecutionInternal()
 
 void TrajectoryExecutionManager::stopExecution(bool auto_clear)
 {
+  stop_execution_ = true;
+  for (auto it = continuous_execution_threads_.begin(); it != continuous_execution_threads_.end(); it++)
+  {
+    (*it)->join();
+    (*it).reset();
+  }
+  continuous_execution_threads_.clear();
+  stop_execution_ = false;
+
   if (!execution_complete_)
   {
     execution_state_mutex_.lock();
@@ -1045,10 +1055,10 @@ void TrajectoryExecutionManager::execute(const ExecutionCompleteCallback& callba
 
   // start the execution thread
   execution_complete_ = false;
-  execution_thread_ = std::make_unique<boost::thread>([this](const ExecutionCompleteCallback& c,
-                                                             const PathSegmentCompleteCallback& pc,
-                                                             bool ac) { executeThread(c, pc, ac); },
-                                                      callback, part_callback, auto_clear);
+  execution_thread_ =
+      std::make_unique<boost::thread>([this](const ExecutionCompleteCallback& c, const PathSegmentCompleteCallback& pc,
+                                             bool ac) { executeThread(c, pc, ac); },
+                                      callback, part_callback, auto_clear);
 }
 
 moveit_controller_manager::ExecutionStatus TrajectoryExecutionManager::waitForExecution()
@@ -1079,11 +1089,19 @@ void TrajectoryExecutionManager::clear()
 
 void TrajectoryExecutionManager::executeThread(const TrajectoryExecutionContext& context)
 {
-  ROS_INFO_NAMED(LOGNAME, "Execute Thread 2");
+  ROS_INFO_NAMED(LOGNAME, "Execute non-blocking thread");
+  // if we already got a stop request before we even started anything, we abort
+  if (stop_execution_)
+  {
+    ROS_ERROR_NAMED(LOGNAME, "Abort execution 1");
+    if (!context.execution_complete_callback.empty())
+      context.execution_complete_callback(moveit_controller_manager::ExecutionStatus::ABORTED);
+    return;
+  }
   std::set<moveit_controller_manager::MoveItControllerHandlePtr> required_handles;
   std::shared_ptr<TrajectoryExecutionContext> context_ptr = std::make_shared<TrajectoryExecutionContext>(context);
 
-  {
+  {  // block until trajectory has been send for execution or aborted
     boost::mutex::scoped_lock slock(execution_thread_mutex_);
 
     // 1. Validate trajectory
@@ -1141,45 +1159,45 @@ void TrajectoryExecutionManager::executeThread(const TrajectoryExecutionContext&
       return;
     }
     active_trajectories_mutex_.unlock();
-  }
 
-  // 2. Execute trajectories
-  // Push trajectory to all controllers simultaneously (each part goes to one controller)
-  for (std::size_t i = 0; i < context.trajectory_parts_.size(); ++i)
-  {
-    // Send trajectory (part) to controller
-    bool ok = false;
-    try
+    // 2. Execute trajectories
+    // Push trajectory to all controllers simultaneously (each part goes to one controller)
+    for (std::size_t i = 0; i < context.trajectory_parts_.size(); ++i)
     {
-      ROS_DEBUG_STREAM_NAMED(LOGNAME, "Sending trajectory to controller: "
-                                          << (*std::next(required_handles.begin(), i))->getName());
-      ROS_DEBUG_STREAM_NAMED(
-          LOGNAME, "duration: " << context.trajectory_parts_[i].joint_trajectory.points.back().time_from_start);
-      ok = (*std::next(required_handles.begin(), i))->sendTrajectory(context.trajectory_parts_[i]);
-    }
-    catch (std::exception& ex)
-    {
-      ROS_ERROR_NAMED(LOGNAME, "Caught %s when sending trajectory to controller", ex.what());
-    }
-    if (!ok)
-    {
-      for (std::size_t j = 0; j < i; ++j)
-        try
-        {
-          (*std::next(required_handles.begin(), j))->cancelExecution();
-        }
-        catch (std::exception& ex)
-        {
-          ROS_ERROR_NAMED(LOGNAME, "Caught %s when canceling execution", ex.what());
-        }
-      ROS_ERROR_NAMED(LOGNAME, "Failed to send trajectory part %zu of %zu to controller %s", i + 1,
-                      context.trajectory_parts_.size(), (*std::next(required_handles.begin(), i))->getName().c_str());
-      if (i > 0)
-        ROS_ERROR_NAMED(LOGNAME, "Cancelling previously sent trajectory parts");
-      if (!context.execution_complete_callback.empty())
-        context.execution_complete_callback(moveit_controller_manager::ExecutionStatus::ABORTED);
-      ROS_ERROR_NAMED(LOGNAME, "Abort execution 6");
-      return;
+      // Send trajectory (part) to controller
+      bool ok = false;
+      try
+      {
+        ROS_DEBUG_STREAM_NAMED(LOGNAME, "Sending trajectory to controller: "
+                                            << (*std::next(required_handles.begin(), i))->getName());
+        ROS_DEBUG_STREAM_NAMED(
+            LOGNAME, "duration: " << context.trajectory_parts_[i].joint_trajectory.points.back().time_from_start);
+        ok = (*std::next(required_handles.begin(), i))->sendTrajectory(context.trajectory_parts_[i]);
+      }
+      catch (std::exception& ex)
+      {
+        ROS_ERROR_NAMED(LOGNAME, "Caught %s when sending trajectory to controller", ex.what());
+      }
+      if (!ok)
+      {
+        for (std::size_t j = 0; j < i; ++j)
+          try
+          {
+            (*std::next(required_handles.begin(), j))->cancelExecution();
+          }
+          catch (std::exception& ex)
+          {
+            ROS_ERROR_NAMED(LOGNAME, "Caught %s when canceling execution", ex.what());
+          }
+        ROS_ERROR_NAMED(LOGNAME, "Failed to send trajectory part %zu of %zu to controller %s", i + 1,
+                        context.trajectory_parts_.size(), (*std::next(required_handles.begin(), i))->getName().c_str());
+        if (i > 0)
+          ROS_ERROR_NAMED(LOGNAME, "Cancelling previously sent trajectory parts");
+        if (!context.execution_complete_callback.empty())
+          context.execution_complete_callback(moveit_controller_manager::ExecutionStatus::ABORTED);
+        ROS_ERROR_NAMED(LOGNAME, "Abort execution 6");
+        return;
+      }
     }
 
     used_handles_mutex_.lock();
@@ -1193,9 +1211,13 @@ void TrajectoryExecutionManager::executeThread(const TrajectoryExecutionContext&
 
   // 3. Monitor duration of the trajectory
   moveit_controller_manager::ExecutionStatus result = monitorTrajectoryExecutionDuration(context, required_handles);
+
+  if (result == moveit_controller_manager::ExecutionStatus::SUCCEEDED)
+    waitForRobotToStop(context);
+
   if (!context.execution_complete_callback.empty())
     context.execution_complete_callback(result);
-  ROS_INFO_NAMED(LOGNAME, "Completed OK");
+  ROS_INFO_STREAM_NAMED(LOGNAME, "Trajectory execution completed with status: " << result.asString());
 
   used_handles_mutex_.lock();
   for (const auto& handle : required_handles)
@@ -1907,7 +1929,7 @@ moveit_controller_manager::ExecutionStatus TrajectoryExecutionManager::monitorTr
     if (execution_duration_monitoring_)
     {
       if (!handle->waitForExecution(expected_trajectory_duration))
-        if (!execution_complete_ && ros::Time::now() - current_time > expected_trajectory_duration)
+        if (!stop_execution_ && ros::Time::now() - current_time > expected_trajectory_duration)
         {
           ROS_ERROR_NAMED(LOGNAME,
                           "Controller is taking too long to execute trajectory (the expected upper "
@@ -1925,7 +1947,7 @@ moveit_controller_manager::ExecutionStatus TrajectoryExecutionManager::monitorTr
       handle->waitForExecution();
 
     // if something made the trajectory stop, we stop this thread too
-    if (execution_complete_)
+    if (stop_execution_)
     {
       return moveit_controller_manager::ExecutionStatus::ABORTED;
     }
