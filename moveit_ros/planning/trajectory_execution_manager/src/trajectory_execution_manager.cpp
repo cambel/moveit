@@ -1828,26 +1828,18 @@ bool TrajectoryExecutionManager::checkContextForCollisions(
 
 bool TrajectoryExecutionManager::checkCollisionsWithCurrentState(const moveit_msgs::RobotTrajectory& trajectory)
 {
-  moveit::core::RobotStatePtr current_state;
-  if (!csm_->waitForCurrentState(ros::Time::now()) || !(current_state = csm_->getCurrentState()))
+  planning_scene_monitor_->waitForCurrentRobotState(ros::Time::now());
+  planning_scene_monitor_->updateFrameTransforms();
+
+  planning_scene_monitor::LockedPlanningSceneRO ps(planning_scene_monitor_);
+
+  moveit_msgs::RobotState current_state_msg;
+  robotStateToRobotStateMsg(ps->getCurrentState(), current_state_msg);
+  if (!ps->isPathValid(current_state_msg, trajectory, trajectory.group_name))
   {
-    ROS_DEBUG_NAMED(LOGNAME, "Failed to validate trajectory: couldn't receive full current joint state within 1s");
+    ROS_DEBUG_NAMED(LOGNAME, "New trajectory collides with the current robot state. Abort!");
     return false;
   }
-  planning_scene_monitor::LockedPlanningSceneRO ps(planning_scene_monitor_);
-  if (jointTrajPointToRobotState(trajectory.joint_trajectory, trajectory.joint_trajectory.points.size() - 1,
-                                 *current_state))
-  {
-    moveit_msgs::RobotState robot_state_msg;
-    robotStateToRobotStateMsg(*current_state, robot_state_msg);
-    if (!ps->isPathValid(robot_state_msg, trajectory, trajectory.group_name))
-    {
-      ROS_DEBUG_NAMED(LOGNAME, "New trajectory collides with the current robot state. Abort!");
-      last_execution_status_ = moveit_controller_manager::ExecutionStatus::ABORTED;
-      return false;
-    }
-  }
-
   return true;
 }
 
