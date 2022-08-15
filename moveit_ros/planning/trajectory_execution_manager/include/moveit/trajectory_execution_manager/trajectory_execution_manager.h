@@ -275,7 +275,7 @@ private:
   bool selectControllers(const std::set<std::string>& actuated_joints,
                          const std::vector<std::string>& available_controllers,
                          std::vector<std::string>& selected_controllers);
-  void executeThread2(const TrajectoryExecutionContext& context);
+  void executeThread(const TrajectoryExecutionContext& context);
   void executeThread(const ExecutionCompleteCallback& callback, const PathSegmentCompleteCallback& part_callback,
                      bool auto_clear);
   bool executePart(std::size_t part_index);

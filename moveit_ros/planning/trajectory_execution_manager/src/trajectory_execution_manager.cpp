@@ -309,7 +309,8 @@ bool TrajectoryExecutionManager::push(const moveit_msgs::RobotTrajectory& trajec
     if (allow_continuous_execution_)
     {
       ROS_INFO_NAMED(LOGNAME, "Creating thread");
-      std::make_unique<boost::thread>(&TrajectoryExecutionManager::executeThread2, this, *context.get());
+      std::make_unique<boost::thread>([this](const TrajectoryExecutionContext& c) { executeThread(c); }, 
+                                      *context.get());
     }
     else
       trajectories_.push_back(std::move(context));
@@ -1044,8 +1045,10 @@ void TrajectoryExecutionManager::execute(const ExecutionCompleteCallback& callba
 
   // start the execution thread
   execution_complete_ = false;
-  execution_thread_ = std::make_unique<boost::thread>(&TrajectoryExecutionManager::executeThread, this, callback,
-                                                      part_callback, auto_clear);
+  execution_thread_ = std::make_unique<boost::thread>([this](const ExecutionCompleteCallback& c,
+                                                             const PathSegmentCompleteCallback& pc,
+                                                             bool ac) { executeThread(c, pc, ac); },
+                                                      callback, part_callback, auto_clear);
 }
 
 moveit_controller_manager::ExecutionStatus TrajectoryExecutionManager::waitForExecution()
@@ -1074,12 +1077,12 @@ void TrajectoryExecutionManager::clear()
     ROS_ERROR_NAMED(LOGNAME, "Cannot push a new trajectory while another is being executed");
 }
 
-void TrajectoryExecutionManager::executeThread2(const TrajectoryExecutionContext& context)
+void TrajectoryExecutionManager::executeThread(const TrajectoryExecutionContext& context)
 {
   ROS_INFO_NAMED(LOGNAME, "Execute Thread 2");
   std::set<moveit_controller_manager::MoveItControllerHandlePtr> required_handles;
   std::shared_ptr<TrajectoryExecutionContext> context_ptr = std::make_shared<TrajectoryExecutionContext>(context);
-  
+
   {
     boost::mutex::scoped_lock slock(execution_thread_mutex_);
 
