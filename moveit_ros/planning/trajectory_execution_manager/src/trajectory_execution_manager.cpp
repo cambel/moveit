@@ -853,6 +853,7 @@ bool TrajectoryExecutionManager::configure(TrajectoryExecutionContext& context,
     // empty trajectories don't need to configure anything
     return true;
   }
+  context.trajectory_ = trajectory;
   std::set<std::string> actuated_joints;
 
   auto is_actuated = [this](const std::string& joint_name) -> bool {
