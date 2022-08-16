@@ -169,6 +169,15 @@ public:
   bool push(const moveit_msgs::RobotTrajectory& trajectory, const std::vector<std::string>& controllers,
             const ExecutionCompleteCallback& callback = ExecutionCompleteCallback());
 
+  /// Add a set of trajectories for future execution. Optionally specify a set of controllers to consider using for the
+  /// trajectory. Multiple controllers can be used simultaneously
+  /// to execute the different parts of the trajectory. If multiple controllers can be used, preference is given to the
+  /// already loaded ones.
+  /// If no controller is specified, a default is used.
+  /// Optionally specify callback that is called when the execution of the trajectory is completed.
+  bool push(const std::vector<moveit_msgs::RobotTrajectory>& trajectories, const std::vector<std::string>& controllers,
+            const ExecutionCompleteCallback& callback = ExecutionCompleteCallback());
+
   /// Get the trajectories to be executed
   const std::vector<std::shared_ptr<TrajectoryExecutionContext>>& getTrajectories() const;
 
@@ -275,7 +284,8 @@ private:
   bool selectControllers(const std::set<std::string>& actuated_joints,
                          const std::vector<std::string>& available_controllers,
                          std::vector<std::string>& selected_controllers);
-  void executeThread(const TrajectoryExecutionContext& context);
+  void executeThread(const std::vector<std::shared_ptr<TrajectoryExecutionContext>>& trajectories);
+  moveit_controller_manager::ExecutionStatus executeTrajectory(const TrajectoryExecutionContext& context);
   void executeThread(const ExecutionCompleteCallback& callback, const PathSegmentCompleteCallback& part_callback,
                      bool auto_clear);
   bool executePart(std::size_t part_index);
