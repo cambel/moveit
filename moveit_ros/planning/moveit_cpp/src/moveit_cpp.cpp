@@ -272,7 +272,7 @@ bool MoveItCpp::execute(const std::string& group_name, const robot_trajectory::R
 
   auto callback = trajectory_execution_manager::TrajectoryExecutionManager::ExecutionCompleteCallback();
 
-  if (trajectory_execution_manager_->getAllowSimultaneousExecution())
+  if (trajectory_execution_manager_->getEnableSimultaneousExecution())
   {
     callback = [this,
                 &execution_status](__attribute__((unused)) const moveit_controller_manager::ExecutionStatus status) {
@@ -286,7 +286,7 @@ bool MoveItCpp::execute(const std::string& group_name, const robot_trajectory::R
 
   if (blocking)
   {
-    if (trajectory_execution_manager_->getAllowSimultaneousExecution())
+    if (trajectory_execution_manager_->getEnableSimultaneousExecution())
     {  // wait for callback to return
       std::unique_lock<std::mutex> ulock(execution_complete_mutex_);
       execution_complete_condition_.wait(ulock);
