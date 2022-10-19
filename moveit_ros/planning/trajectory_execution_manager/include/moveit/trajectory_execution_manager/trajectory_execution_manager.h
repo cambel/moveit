@@ -75,9 +75,6 @@ public:
 
   enum EventType
   {
-    /** \brief New trajectory(s) has been pushed */
-    NEW_REQUEST = 0,
-
     /** \brief The execution of a trajectory has been completed, regardless of status */
     EXECUTION_COMPLETED = 1,
 
@@ -155,6 +152,7 @@ public:
     /// Counter of trajectories pending for execution
     int remaining_trajectories_count_;
 
+    /// Identifier for this sequential trajectory
     TrajectoryExecutionManager::TrajectoryID id_;
 
     SequentialTrajectoryExecutionContext()

@@ -1524,8 +1524,8 @@ std::pair<int, int> TrajectoryExecutionManager::getCurrentExpectedTrajectoryInde
   std::lock_guard<std::mutex> slock(active_trajectory_sequences_mutex_);
   if (enable_simultaneous_execution_ || active_trajectory_sequences_.size() > 1)
   {
-    ROS_ERROR_NAMED(LOGNAME,
-                    "During continuous execution mode, call to getCurrentExpectedTrajectoryIndex() are not allowed");
+    ROS_ERROR_NAMED(LOGNAME, "During continuous execution mode, call to getCurrentExpectedTrajectoryIndex() are not "
+                             "allowed. Returning (-1,-1)");
     // TODO (cambel) : raise an error instead of returning?
     return std::make_pair(-1, -1);
   }
