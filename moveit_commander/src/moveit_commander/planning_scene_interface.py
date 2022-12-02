@@ -202,13 +202,13 @@ class PlanningSceneInterface(object):
         Allow collisions between link_1(one or many) and link_2.
         """
         return self._psi.allow_collisions(link_1, link_2)
-    
+
     def disallow_collisions(self, link_1, link_2=""):
         """
         Disallow collisions between link_1(one or many) and link_2.
         """
         return self._psi.disallow_collisions(link_1, link_2)
-    
+
     def set_collisions(self, set_to_allow, link_1, link_2):
         """
         Set collisions between link_1 and link_2.
@@ -267,13 +267,15 @@ class PlanningSceneInterface(object):
             conversions.msg_from_string(msg, ser_aobjs[key])
             aobjs[key] = msg
         return aobjs
-    
+
     def apply_collision_object(self, collision_object_message):
         """
         Applies the collision object message to the scene.
         """
-        return self._psi.apply_collision_object(conversions.msg_to_string(collision_object_message))
-    
+        return self._psi.apply_collision_object(
+            conversions.msg_to_string(collision_object_message)
+        )
+
     def apply_planning_scene(self, planning_scene_message):
         """
         Applies the planning scene message.
