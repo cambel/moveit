@@ -454,6 +454,7 @@ void PlanningScene::pushDiffs(const PlanningScenePtr& scene)
           scene->setObjectType(it.first, getObjectType(it.first));
 
         scene->world_->setSubframesOfObject(obj.id_, obj.subframe_poses_);
+        scene->world_->setObjectVisualGeometry(obj.id_, obj.visual_geometry_mesh_url_, obj.visual_geometry_pose_);
       }
     }
   }
@@ -796,6 +797,8 @@ bool PlanningScene::getCollisionObjectMsg(moveit_msgs::CollisionObject& collisio
     p = tf2::toMsg(frame_pair.second);
     collision_obj.subframe_poses.push_back(p);
   }
+  collision_obj.visual_geometry_mesh_url = obj->visual_geometry_mesh_url_;
+  collision_obj.visual_geometry_pose = tf2::toMsg(obj->visual_geometry_pose_);
 
   return true;
 }
@@ -996,6 +999,8 @@ void PlanningScene::saveGeometryToStream(std::ostream& out) const
           out << pose_pair.first << std::endl;     // Subframe name
           writePoseToText(out, pose_pair.second);  // Subframe pose
         }
+
+        // TODO (felixvd): Write visual geometry?
       }
     }
   out << "." << std::endl;
@@ -1500,6 +1505,8 @@ bool PlanningScene::processAttachedCollisionObjectMsg(const moveit_msgs::Attache
     {
       // items to build the attached object from (filled from existing world object or message)
       Eigen::Isometry3d object_pose_in_link;
+      std::string visual_geometry_mesh_url;
+      Eigen::Isometry3d visual_geometry_pose;
       std::vector<shapes::ShapeConstPtr> shapes;
       EigenSTL::vector_Isometry3d shape_poses;
       moveit::core::FixedTransformsMap subframe_poses;
@@ -1519,6 +1526,8 @@ bool PlanningScene::processAttachedCollisionObjectMsg(const moveit_msgs::Attache
           shapes = obj_in_world->shapes_;
           shape_poses = obj_in_world->shape_poses_;
           subframe_poses = obj_in_world->subframe_poses_;
+          visual_geometry_mesh_url = obj_in_world->visual_geometry_mesh_url_;
+          visual_geometry_pose = obj_in_world->visual_geometry_pose_;
         }
         else
         {
@@ -1546,6 +1555,9 @@ bool PlanningScene::processAttachedCollisionObjectMsg(const moveit_msgs::Attache
           std::string name = object.object.subframe_names[i];
           subframe_poses[name] = subframe_pose;
         }
+
+        visual_geometry_mesh_url = object.object.visual_geometry_mesh_url;
+        PlanningScene::poseMsgToEigen(object.object.visual_geometry_pose, visual_geometry_pose);
       }
 
       if (shapes.empty())
@@ -1582,7 +1594,8 @@ bool PlanningScene::processAttachedCollisionObjectMsg(const moveit_msgs::Attache
                           object.object.id.c_str(), object.link_name.c_str());
 
         robot_state_->attachBody(object.object.id, object_pose_in_link, shapes, shape_poses, object.touch_links,
-                                 object.link_name, object.detach_posture, subframe_poses);
+                                 object.link_name, object.detach_posture, subframe_poses, visual_geometry_mesh_url,
+                                 visual_geometry_pose);
         ROS_DEBUG_NAMED(LOGNAME, "Attached object '%s' to link '%s'", object.object.id.c_str(),
                         object.link_name.c_str());
       }
@@ -1604,9 +1617,21 @@ bool PlanningScene::processAttachedCollisionObjectMsg(const moveit_msgs::Attache
         touch_links.insert(std::make_move_iterator(object.touch_links.begin()),
                            std::make_move_iterator(object.touch_links.end()));
 
+        if (!object.object.visual_geometry_mesh_url.empty())  // If visual geometry is defined
+        {
+          visual_geometry_mesh_url = object.object.visual_geometry_mesh_url;
+          PlanningScene::poseMsgToEigen(object.object.visual_geometry_pose, visual_geometry_pose);
+        }
+        else
+        {
+          visual_geometry_mesh_url = "";
+          visual_geometry_pose = Eigen::Isometry3d::Identity();
+        }
+
         robot_state_->clearAttachedBody(object.object.id);
         robot_state_->attachBody(object.object.id, object_pose_in_link, shapes, shape_poses, touch_links,
-                                 object.link_name, detach_posture, subframe_poses);
+                                 object.link_name, detach_posture, subframe_poses, visual_geometry_mesh_url,
+                                 visual_geometry_pose);
         ROS_DEBUG_NAMED(LOGNAME, "Appended things to object '%s' attached to link '%s'", object.object.id.c_str(),
                         object.link_name.c_str());
       }
@@ -1659,6 +1684,8 @@ bool PlanningScene::processAttachedCollisionObjectMsg(const moveit_msgs::Attache
         const Eigen::Isometry3d& pose = attached_body->getGlobalPose();
         world_->addToObject(name, pose, attached_body->getShapes(), attached_body->getShapePoses());
         world_->setSubframesOfObject(name, attached_body->getSubframes());
+        world_->setObjectVisualGeometry(name, attached_body->getVisualGeometryUrl(),
+                                        attached_body->getVisualGeometryPose());
         ROS_DEBUG_NAMED(LOGNAME, "Detached object '%s' from link '%s' and added it back in the collision world",
                         name.c_str(), object.link_name.c_str());
       }
@@ -1845,6 +1872,15 @@ bool PlanningScene::processCollisionObjectAdd(const moveit_msgs::CollisionObject
     subframes[name] = subframe_pose;
   }
   world_->setSubframesOfObject(object.id, subframes);
+
+  ROS_WARN_STREAM_NAMED(LOGNAME, "Got object with url " << object.visual_geometry_mesh_url);
+  if (!object.visual_geometry_mesh_url.empty())
+  {
+    ROS_WARN_NAMED(LOGNAME, "DEBUG 1");
+    Eigen::Isometry3d visual_geometry_pose;
+    PlanningScene::poseMsgToEigen(object.visual_geometry_pose, visual_geometry_pose);
+    world_->setObjectVisualGeometry(object.id, object.visual_geometry_mesh_url, visual_geometry_pose);
+  }
   return true;
 }
 

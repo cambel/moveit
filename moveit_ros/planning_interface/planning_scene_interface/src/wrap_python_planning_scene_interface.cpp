@@ -96,18 +96,18 @@ public:
   {
     return allowCollisions(link_1, link_2);
   }
-  
+
   bool allowCollisionsPython2(const bp::list& links, const std::string& link_2)
   {
     std::vector<std::string> links_ = py_bindings_tools::stringFromList(links);
     return allowCollisions(links_, link_2);
   }
-  
+
   bool disallowCollisionsPython1(const std::string& link_1, const std::string& link_2)
   {
     return disallowCollisions(link_1, link_2);
   }
-  
+
   bool disallowCollisionsPython2(const bp::list& links, const std::string& link_2)
   {
     std::vector<std::string> links_ = py_bindings_tools::stringFromList(links);
@@ -119,7 +119,7 @@ public:
     std::vector<std::string> links_ = py_bindings_tools::stringFromList(links);
     return setCollisions(set_to_allow, link_1, links_);
   }
-  
+
   bool setCollisionsPython2(bool set_to_allow, const bp::list& links_1, const bp::list links_2)
   {
     std::vector<std::string> links_1_ = py_bindings_tools::stringFromList(links_1);
@@ -184,4 +184,3 @@ BOOST_PYTHON_MODULE(_moveit_planning_scene_interface)
 }
 
 /** @endcond */
-
