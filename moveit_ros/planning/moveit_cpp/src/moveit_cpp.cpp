@@ -81,8 +81,8 @@ MoveItCpp::MoveItCpp(const Options& options, const ros::NodeHandle& nh,
   }
 
   // TODO(henningkayser): configure trajectory execution manager
-  trajectory_execution_manager_ = std::make_shared<trajectory_execution_manager::TrajectoryExecutionManager>(
-      robot_model_, planning_scene_monitor_->getStateMonitor());
+  trajectory_execution_manager_ =
+      std::make_shared<trajectory_execution_manager::TrajectoryExecutionManager>(robot_model_, planning_scene_monitor_);
 
   ROS_DEBUG_NAMED(LOGNAME, "MoveItCpp running");
 }
@@ -238,11 +238,10 @@ bool MoveItCpp::execute(const std::string& group_name, const robot_trajectory::R
   // Execute trajectory
   moveit_msgs::RobotTrajectory robot_trajectory_msg;
   robot_trajectory->getRobotTrajectoryMsg(robot_trajectory_msg);
-  // TODO: cambel
-  // blocking is the only valid option right now. Add non-bloking use case
+
+  trajectory_execution_manager_->push(robot_trajectory_msg);
   if (blocking)
   {
-    trajectory_execution_manager_->push(robot_trajectory_msg);
     trajectory_execution_manager_->execute();
     return trajectory_execution_manager_->waitForExecution();
   }
