@@ -81,8 +81,8 @@ MoveItCpp::MoveItCpp(const Options& options, const ros::NodeHandle& nh,
   }
 
   // TODO(henningkayser): configure trajectory execution manager
-  trajectory_execution_manager_ = std::make_shared<trajectory_execution_manager::TrajectoryExecutionManager>(
-      robot_model_, planning_scene_monitor_->getStateMonitor());
+  trajectory_execution_manager_ =
+      std::make_shared<trajectory_execution_manager::TrajectoryExecutionManager>(robot_model_, planning_scene_monitor_);
 
   ROS_DEBUG_NAMED(LOGNAME, "MoveItCpp running");
 }
@@ -238,14 +238,52 @@ bool MoveItCpp::execute(const std::string& group_name, const robot_trajectory::R
   // Execute trajectory
   moveit_msgs::RobotTrajectory robot_trajectory_msg;
   robot_trajectory->getRobotTrajectoryMsg(robot_trajectory_msg);
-  // TODO: cambel
-  // blocking is the only valid option right now. Add non-bloking use case
+  moveit_controller_manager::ExecutionStatus execution_status;
+
+  auto callback = trajectory_execution_manager::TrajectoryExecutionManager::ExecutionCompleteCallback();
+
+  static int trajectory_id = 0;
+  trajectory_id++;
+
+  if (trajectory_execution_manager_->getEnableSimultaneousExecution())
+  {
+    callback = [this,
+                &execution_status](__attribute__((unused)) const moveit_controller_manager::ExecutionStatus status) {
+      {
+        std::unique_lock<std::mutex> ulock(execution_complete_mutex_);
+        std::remove(active_trajectories_.begin(), active_trajectories_.end(), trajectory_id);
+      }
+      execution_complete_condition_.notify_all();
+      execution_status = status;
+    };
+  }
+
+  if (!trajectory_execution_manager_->push(robot_trajectory_msg, "", callback))
+    return false;
+
+  {
+    std::unique_lock<std::mutex> ulock(execution_complete_mutex_);
+    active_trajectories_.push_back(trajectory_id);
+  }
+
   if (blocking)
   {
-    trajectory_execution_manager_->push(robot_trajectory_msg);
-    trajectory_execution_manager_->execute();
-    return trajectory_execution_manager_->waitForExecution();
+    if (trajectory_execution_manager_->getEnableSimultaneousExecution())
+    {  // wait for callback to return or for the trajectory to stop being active
+      std::unique_lock<std::mutex> ulock(execution_complete_mutex_);
+      execution_complete_condition_.wait(ulock, [this]() {
+        return std::find(active_trajectories_.begin(), active_trajectories_.end(), trajectory_id) ==
+               active_trajectories_.end();
+      });
+      return execution_status;
+    }
+    else
+    {
+      trajectory_execution_manager_->execute();
+      return trajectory_execution_manager_->waitForExecution();
+    }
   }
+
   return true;
 }
 
