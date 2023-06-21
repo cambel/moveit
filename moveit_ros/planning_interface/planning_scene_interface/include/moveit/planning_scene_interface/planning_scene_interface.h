@@ -142,6 +142,27 @@ public:
       consider using `applyCollisionObjects` instead. */
   void removeCollisionObjects(const std::vector<std::string>& object_ids) const;
 
+  /** \brief Allow or disallow collisions for links, pairs of links, or groups of links.
+   * This sets the AllowedCollisionMatrix of the PlanningScene accordingly.
+   * If link_name_2 is empty, this sets collision behavior between link_name_1 and all other objects in the world.
+   * Supplying both link names only sets collision behavior between the two link_names.
+   * If both link names are supplied, the collision behavior is set
+   * between all the links of group 1 and all the links of group 2.
+   *
+   * E.g. allowCollisions("gripper_wrist_link", "table_base_link") allows collisions between
+   * the table and the wrist link of your gripper. You will want to add the other gripper links as well.
+   */
+  bool allowCollisions(const std::string& link_name_1, const std::string& link_name_2 = "");
+  bool allowCollisions(const std::vector<std::string>& link_group_1, const std::string& link_name_2 = "");
+  bool disallowCollisions(const std::string& link_name_1, const std::string& link_name_2 = "");
+  bool disallowCollisions(const std::vector<std::string>& link_group_1, const std::string& link_name_2 = "");
+
+  /** \brief Allow or disallow collisions for a set of links or between two sets. */
+  bool setCollisions(bool set_to_allow, const std::vector<std::string>& link_group_1,
+                     const std::vector<std::string>& link_group_2 = std::vector<std::string>());
+  bool setCollisions(bool set_to_allow, const std::string& link_name_1,
+                     const std::vector<std::string>& link_group_2 = std::vector<std::string>());
+
   /**@}*/
 
 private:

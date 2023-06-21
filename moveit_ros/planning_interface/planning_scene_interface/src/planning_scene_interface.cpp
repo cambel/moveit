@@ -255,6 +255,38 @@ public:
     planning_scene_diff_publisher_.publish(planning_scene);
   }
 
+  bool setCollisions(bool set_to_allow, const std::vector<std::string>& link_group_1,
+                     const std::vector<std::string>& link_group_2)
+  {
+    bool allowed_or_disallowed = set_to_allow;
+    moveit_msgs::GetPlanningScene::Request request;
+    moveit_msgs::GetPlanningScene::Response response;
+    std::vector<std::string> result;
+    request.components.components = request.components.ALLOWED_COLLISION_MATRIX;
+    if (!planning_scene_service_.call(request, response))
+    {
+      ROS_WARN_NAMED("planning_scene_interface",
+                     "Could not call planning scene service to set allowed collision matrix");
+      return false;
+    }
+
+    moveit_msgs::PlanningScene ps = response.scene;
+    collision_detection::AllowedCollisionMatrix acm(response.scene.allowed_collision_matrix);
+    // TODO: Include the child links in each link group.
+    for (auto b : link_group_1)
+    {
+      if (link_group_2.empty())
+        acm.setEntry(b, allowed_or_disallowed);
+      else
+        for (auto b2 : link_group_2)
+          acm.setEntry(b, b2, allowed_or_disallowed);
+    }
+
+    ps.is_diff = true;
+    acm.getMessage(ps.allowed_collision_matrix);
+    return applyPlanningScene(ps);
+  }
+
 private:
   void waitForService(ros::ServiceClient& srv)
   {
@@ -356,7 +388,6 @@ bool PlanningSceneInterface::applyCollisionObjects(const std::vector<moveit_msgs
     else
       break;
   }
-
   return applyPlanningScene(ps);
 }
 
@@ -394,6 +425,55 @@ void PlanningSceneInterface::addCollisionObjects(const std::vector<moveit_msgs::
 void PlanningSceneInterface::removeCollisionObjects(const std::vector<std::string>& object_ids) const
 {
   impl_->removeCollisionObjects(object_ids);
+}
+}  // namespace planning_interface
+}  // namespace moveit
+
+bool PlanningSceneInterface::allowCollisions(const std::string& link_name_1, const std::string& link_name_2)
+{
+  std::vector<std::string> link_group_1, link_group_2;
+  link_group_1.push_back(link_name_1);
+  if (link_name_2 != "")
+    link_group_2.push_back(link_name_2);
+  return setCollisions(true, link_group_1, link_group_2);
+}
+
+bool PlanningSceneInterface::allowCollisions(const std::vector<std::string>& link_group_1,
+                                             const std::string& link_name_2)
+{
+  std::vector<std::string> link_group_2;
+  if (link_name_2 != "")
+    link_group_2.push_back(link_name_2);
+  return setCollisions(true, link_group_1, link_group_2);
+}
+
+bool PlanningSceneInterface::disallowCollisions(const std::string& link_name_1, const std::string& link_name_2)
+{
+  std::vector<std::string> link_group_1, link_group_2;
+  link_group_1.push_back(link_name_1);
+  if (link_name_2 != "")
+    link_group_2.push_back(link_name_2);
+  return setCollisions(false, link_group_1, link_group_2);
+}
+
+bool PlanningSceneInterface::disallowCollisions(const std::vector<std::string>& link_group_1,
+                                                const std::string& link_name_2)
+{
+  std::vector<std::string> link_group_2 = { link_name_2 };
+  return setCollisions(false, link_group_1, link_group_2);
+}
+
+bool PlanningSceneInterface::setCollisions(bool set_to_allow, const std::string& link_name_1,
+                                           const std::vector<std::string>& link_group_2)
+{
+  std::vector<std::string> link_group_1 = { link_name_1 };
+  return impl_->setCollisions(set_to_allow, link_group_1, link_group_2);
+}
+
+bool PlanningSceneInterface::setCollisions(bool set_to_allow, const std::vector<std::string>& link_group_1,
+                                           const std::vector<std::string>& link_group_2)
+{
+  return impl_->setCollisions(set_to_allow, link_group_1, link_group_2);
 }
 }  // namespace planning_interface
 }  // namespace moveit

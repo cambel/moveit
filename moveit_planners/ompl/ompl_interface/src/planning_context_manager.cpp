@@ -453,7 +453,8 @@ ompl_interface::ModelBasedPlanningContextPtr ompl_interface::PlanningContextMana
     if (pc == planner_configs_.end())
     {
       ROS_WARN_NAMED(LOGNAME,
-                     "Cannot find planning configuration for group '%s': planning pipeline '%s' does not know planner '%s'. Will use defaults instead.",
+                     "Cannot find planning configuration for group '%s': planning pipeline '%s' does not know planner "
+                     "'%s'. Will use defaults instead.",
                      req.group_name.c_str(), req.pipeline_id.c_str(), req.planner_id.c_str());
       ROS_WARN_NAMED(LOGNAME, "Available planners: ");
       for (auto config : planner_configs_)

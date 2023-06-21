@@ -120,7 +120,8 @@ private Q_SLOTS:
   void changedMoveGroupNS();
   void changedRobotDescription();
   void changedSceneName();
-  void changedSceneEnabled();
+  void changedSceneGeometryVisualEnabled();
+  void changedSceneGeometryCollisionEnabled();
   void changedSceneRobotVisualEnabled();
   void changedSceneRobotCollisionEnabled();
   void changedRobotSceneAlpha();
@@ -129,6 +130,9 @@ private Q_SLOTS:
   void changedPlanningSceneTopic();
   void changedSceneDisplayTime();
   void changedOctreeRendering();
+  void changedSceneMeshScale();
+  void changedOctreeRenderMode();
+  void changedOctreeColorMode();
   void setSceneName(const QString& name);
 
 protected Q_SLOTS:
@@ -201,13 +205,15 @@ protected:
   rviz::StringProperty* move_group_ns_property_;
   rviz::StringProperty* robot_description_property_;
   rviz::StringProperty* scene_name_property_;
-  rviz::BoolProperty* scene_enabled_property_;
+  rviz::BoolProperty* scene_geometry_visual_enabled_property_;
+  rviz::BoolProperty* scene_geometry_collision_enabled_property_;
   rviz::BoolProperty* scene_robot_visual_enabled_property_;
   rviz::BoolProperty* scene_robot_collision_enabled_property_;
   rviz::RosTopicProperty* planning_scene_topic_property_;
   rviz::FloatProperty* robot_alpha_property_;
   rviz::FloatProperty* scene_alpha_property_;
   rviz::ColorProperty* scene_color_property_;
+  rviz::FloatProperty* scene_geometry_visual_mesh_scaling_factor_;
   rviz::ColorProperty* attached_body_color_property_;
   rviz::FloatProperty* scene_display_time_property_;
   rviz::EnumProperty* octree_render_property_;
