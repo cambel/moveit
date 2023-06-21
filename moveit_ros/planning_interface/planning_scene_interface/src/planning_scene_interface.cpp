@@ -38,6 +38,7 @@
 #include <moveit/move_group/capability_names.h>
 #include <moveit_msgs/GetPlanningScene.h>
 #include <moveit_msgs/ApplyPlanningScene.h>
+#include <moveit/collision_detection/collision_matrix.h>
 #include <ros/ros.h>
 #include <algorithm>
 
@@ -426,8 +427,6 @@ void PlanningSceneInterface::removeCollisionObjects(const std::vector<std::strin
 {
   impl_->removeCollisionObjects(object_ids);
 }
-}  // namespace planning_interface
-}  // namespace moveit
 
 bool PlanningSceneInterface::allowCollisions(const std::string& link_name_1, const std::string& link_name_2)
 {
