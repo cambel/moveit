@@ -40,10 +40,12 @@
 
 namespace bp = boost::python;
 
+BOOST_PYTHON_FUNCTION_OVERLOADS(roscpp_init_overload, moveit::py_bindings_tools::roscpp_init, 2, 3)
+
 static void wrap_roscpp_initializer()
 {
-  void (*init_fn)(const std::string&, bp::list&) = &moveit::py_bindings_tools::roscpp_init;
-  bp::def("roscpp_init", init_fn);
+  void (*init_fn)(const std::string&, bp::list&, const bool) = &moveit::py_bindings_tools::roscpp_init;
+  bp::def("roscpp_init", init_fn, roscpp_init_overload(bp::args("node_name", "argv", "anonymous_name")));
   bp::def("roscpp_shutdown", &moveit::py_bindings_tools::roscpp_shutdown);
 }
 

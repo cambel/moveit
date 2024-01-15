@@ -62,7 +62,7 @@ namespace
 {
 struct InitProxy
 {
-  InitProxy()
+  InitProxy(bool anonymous_name = true)
   {
     const std::vector<std::string>& args = ROScppArgs();
     int fake_argc = args.size();
@@ -70,8 +70,12 @@ struct InitProxy
     for (std::size_t i = 0; i < args.size(); ++i)
       fake_argv[i] = strdup(args[i].c_str());
 
-    ros::init(fake_argc, fake_argv, ROScppNodeName(),
-              ros::init_options::AnonymousName | ros::init_options::NoSigintHandler);
+    if (anonymous_name)
+      ros::init(fake_argc, fake_argv, ROScppNodeName(),
+                ros::init_options::AnonymousName | ros::init_options::NoSigintHandler);
+    else
+      ros::init(fake_argc, fake_argv, ROScppNodeName(),
+                  ros::init_options::NoSigintHandler);
     for (int i = 0; i < fake_argc; ++i)
       delete[] fake_argv[i];
     delete[] fake_argv;
@@ -85,7 +89,7 @@ struct InitProxy
 };
 }  // namespace
 
-static void roscpp_init_or_stop(bool init)
+static void roscpp_init_or_stop(bool init, bool anonymous_name = true)
 {
   // ensure we do not accidentally initialize ROS multiple times per process
   static boost::mutex lock;
@@ -104,7 +108,7 @@ static void roscpp_init_or_stop(bool init)
     // if ROS (cpp) is not initialized, we initialize it
     if (!ros::isInitialized())
     {
-      proxy = std::make_unique<InitProxy>();
+      proxy = std::make_unique<InitProxy>(anonymous_name);
       spinner = std::make_unique<ros::AsyncSpinner>(1);
       spinner->start();
     }
@@ -124,10 +128,10 @@ void moveit::py_bindings_tools::roscpp_init()
   roscpp_init_or_stop(true);
 }
 
-void moveit::py_bindings_tools::roscpp_init(const std::string& node_name, boost::python::list& argv)
+void moveit::py_bindings_tools::roscpp_init(const std::string& node_name, boost::python::list& argv, const bool anonymous_name)
 {
   roscpp_set_arguments(node_name, argv);
-  roscpp_init();
+  roscpp_init_or_stop(true, anonymous_name);
 }
 
 void moveit::py_bindings_tools::roscpp_init(boost::python::list& argv)

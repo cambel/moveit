@@ -61,7 +61,7 @@ public:
 void roscpp_set_arguments(const std::string& node_name, boost::python::list& argv);
 
 /** \brief Initialize ROScpp with specified command line args */
-void roscpp_init(const std::string& node_name, boost::python::list& argv);
+void roscpp_init(const std::string& node_name, boost::python::list& argv, const bool anonymous_name=true);
 
 /** \brief Initialize ROScpp with specified command line args */
 void roscpp_init(boost::python::list& argv);
